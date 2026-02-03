@@ -1,0 +1,18 @@
+twist_mux:
+  ros__parameters:
+
+    topics:
+      estop:
+        topic: /cmd_vel_estop
+        timeout: 0.1
+        priority: 100
+
+      teleop_normal:
+        topic: /cmd_vel_normal
+        timeout: 0.01
+        priority: 60
+
+      teleop_slow:
+        topic: /cmd_vel_slow
+        timeout: 0.01
+        priority: 50

@@ -1,0 +1,6 @@
+# 机械臂 G 代码桥接节点：订阅 arm_gcode_command，写入串口
+arm_gcode_bridge:
+  ros__parameters:
+    port_name: "/dev/ttyUSB0"
+    baud_rate: 115200
+    gcode_command_topic: "arm_gcode_command"

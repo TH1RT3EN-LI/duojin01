@@ -1,0 +1,6 @@
+# WLKATA Mirobot 机械臂 USB 串口权限
+# 安装后插拔一次 USB 或执行: sudo udevadm control --reload-rules
+# 安装方法: 见 scripts/setup_udev_rules.sh
+
+KERNEL=="ttyUSB[0-9]*", MODE="0666"
+KERNEL=="ttyACM[0-9]*", MODE="0666"

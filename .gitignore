@@ -1,0 +1,30 @@
+# Colcon / ROS 2 build artifacts
+build/
+install/
+log/
+
+# Python bytecode / packaging artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# CMake / build system outputs
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local env files
+.env

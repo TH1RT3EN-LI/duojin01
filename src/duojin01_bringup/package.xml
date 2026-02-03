@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>duojin01_bringup</name>
+  <version>0.0.0</version>
+  <description>启动车辆的有关软硬件</description>
+  <maintainer email="litianshun.cn@gmail.com">litianshun</maintainer>
+  <license>Proprietary</license>
+
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <exec_depend>duojin01_sim_tools</exec_depend>
+  <exec_depend>lslidar_driver</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>mirobot_description</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

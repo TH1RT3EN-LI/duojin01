@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>duojin01_controller_emulator</name>
+  <version>0.0.0</version>
+  <description>通过PTY模拟 duojin01 底盘控制逻辑，实现与硬件驱动等效的仿真。</description>
+  <maintainer email="litianshun.cn@gmail.com">litianshun</maintainer>
+  <license>Proprietary</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

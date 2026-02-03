@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>duojin01_sim_tools</name>
+  <version>0.0.0</version>
+  <description>用于实现仿真的数个小工具node。</description>
+
+  <maintainer email="litianshun.cn@gmail.com">litianshun</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>tf2_msgs</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
