@@ -1,0 +1,111 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable, TimerAction
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+
+
+def _resolve_default_map_yaml(bringup_share: str) -> str:
+    maps_dir = os.path.join(bringup_share, "maps")
+    numeric_maps = []
+    newest_map = None
+    newest_mtime = -1.0
+
+    if os.path.isdir(maps_dir):
+        for filename in os.listdir(maps_dir):
+            if not filename.endswith(".yaml"):
+                continue
+            path = os.path.join(maps_dir, filename)
+            if not os.path.isfile(path):
+                continue
+            stem = os.path.splitext(filename)[0]
+            if stem.isdigit():
+                numeric_maps.append((int(stem), path))
+            mtime = os.path.getmtime(path)
+            if mtime > newest_mtime:
+                newest_mtime = mtime
+                newest_map = path
+
+    if numeric_maps:
+        numeric_maps.sort(key=lambda item: item[0])
+        return numeric_maps[-1][1]
+    if newest_map is not None:
+        return newest_map
+    return os.path.join(maps_dir, "my_map.yaml")
+
+
+def generate_launch_description():
+    bringup_share = get_package_share_directory("duojin01_bringup")
+    default_map_yaml = _resolve_default_map_yaml(bringup_share)
+
+    headless = LaunchConfiguration("headless")
+    use_sim_time = LaunchConfiguration("use_sim_time")
+    use_teleop = LaunchConfiguration("use_teleop")
+    use_rviz = LaunchConfiguration("use_rviz")
+    use_foxglove = LaunchConfiguration("use_foxglove")
+    map_yaml = LaunchConfiguration("map")
+    params_file = LaunchConfiguration("params_file")
+    use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
+
+    sim_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "sim.launch.py")),
+        launch_arguments={
+            "headless": headless,
+            "use_sim_tf": "true",
+            "use_teleop": use_teleop,
+            "use_foxglove": use_foxglove,
+        }.items(),
+    )
+
+    nav_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "nav2.launch.py")),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+            "use_rviz": use_rviz,
+            "map": map_yaml,
+            "params_file": params_file,
+        }.items(),
+    )
+
+    nav_launch_delayed = TimerAction(period=8.0, actions=[nav_launch])
+    
+    scan_rewriter = Node(
+        package="duojin01_sim_tools",
+        executable="scan_frame_rewriter",
+        name="scan_frame_rewriter",
+        output="screen",
+        parameters=[
+            {
+                "use_sim_time": use_sim_time_param,
+                "input_topic": "/scan_raw",
+                "output_topic": "/scan",
+                "output_frame_id": "laser",
+            }
+        ],
+    )
+
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument("headless", default_value="false"),
+            DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="true")),
+            SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
+            DeclareLaunchArgument("use_teleop", default_value="false"),
+            DeclareLaunchArgument("use_rviz", default_value="true"),
+            DeclareLaunchArgument("use_foxglove", default_value="false"),
+            DeclareLaunchArgument(
+                "map",
+                default_value=default_map_yaml,
+            ),
+            DeclareLaunchArgument(
+                "params_file",
+                default_value=os.path.join(bringup_share, "config", "nav2.yaml"),
+            ),
+            sim_launch,
+            scan_rewriter,
+            nav_launch_delayed,
+        ]
+    )

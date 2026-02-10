@@ -1,0 +1,26 @@
+safety_watchdog:
+  ros__parameters:
+    check_rate_hz: 50.0
+
+    grace_period_sec: 15.0
+
+    enable_odom_check: true
+    odom_timeout_sec: 2.0       
+
+    enable_imu_check: true
+    imu_timeout_sec: 2.0       
+
+    enable_battery_check: true
+    battery_timeout_sec: 5.0   
+
+    enable_battery_voltage_check: true
+    battery_min_voltage: 19.0   # 额定电压22.4V, 安全下限大概18V
+    battery_window_size: 50    
+    battery_hysteresis_voltage: 0.5  
+
+
+    enable_tilt_check: true
+    max_tilt_degrees: 45.0
+    tilt_confirm_count: 20      
+
+    diag_period_sec: 1.0       

@@ -1,0 +1,11 @@
+keyboard_teleop_node:
+  ros__parameters:
+    cmd_vel_topic: '/cmd_vel'
+    stamped: false
+    frame_id: ''
+    speed: 0.5
+    turn: 1.0
+    publish_rate: 120.0
+    evdev_device: ''
+    grab_device: true
+    evdev_poll_timeout: 0.005

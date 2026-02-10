@@ -1,0 +1,531 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <world name="empty_world">
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_update_rate>1000</real_time_update_rate>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="ignition-gazebo-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="ignition-gazebo-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="ignition-gazebo-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="ignition-gazebo-contact-system" name="gz::sim::systems::Contact"/>
+    <plugin filename="ignition-gazebo-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+    <!-- ============================= -->
+    <!-- Hexagon walls -->
+    <!-- ============================= -->
+
+
+    <!-- wall 0 -->
+    <model name="wall_0">
+      <static>true</static>
+      <pose>0 5.2 0.9 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- wall 1 -->
+    <model name="wall_1">
+      <static>true</static>
+      <pose>-4.5 2.6 0.9 0 0 1.0472</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- wall 2 -->
+    <model name="wall_2">
+      <static>true</static>
+      <pose>-4.5 -2.6 0.9 0 0 2.0944</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- wall 3 -->
+    <model name="wall_3">
+      <static>true</static>
+      <pose>0 -5.2 0.9 0 0 3.1416</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- wall 4 -->
+    <model name="wall_4">
+      <static>true</static>
+      <pose>4.5 -2.6 0.9 0 0 -2.0944</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- wall 5 -->
+    <model name="wall_5">
+      <static>true</static>
+      <pose>4.5 2.6 0.9 0 0 -1.0472</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <box>
+              <size>6 0.3 1.8</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ============================= -->
+    <!-- Inner cylindrical obstacles -->
+    <!-- ============================= -->
+
+
+    <model name="pillar_c1">
+      <static>true</static>
+      <pose>-1.2 1.1 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_c2">
+      <static>true</static>
+      <pose>0.0 1.3 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_c3">
+      <static>true</static>
+      <pose>1.1 0.9 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_c4">
+      <static>true</static>
+      <pose>-1.4 -0.1 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+
+
+    <model name="pillar_c6">
+      <static>true</static>
+      <pose>1.3 -0.2 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_c7">
+      <static>true</static>
+      <pose>-0.9 -1.2 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_c8">
+      <static>true</static>
+      <pose>0.3 -1.4 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_c9">
+      <static>true</static>
+      <pose>1.2 -1.1 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ============================= -->
+    <!-- Inner pillars: outer disturbed -->
+    <!-- ============================= -->
+
+    <model name="pillar_o1">
+      <static>true</static>
+      <pose>0.0 3.2 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_o2">
+      <static>true</static>
+      <pose>2.6 1.6 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_o3">
+      <static>true</static>
+      <pose>2.8 -1.3 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_o4">
+      <static>true</static>
+      <pose>0.2 -3.0 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_o5">
+      <static>true</static>
+      <pose>-2.4 -1.7 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_o6">
+      <static>true</static>
+      <pose>-2.6 1.4 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>1.2</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

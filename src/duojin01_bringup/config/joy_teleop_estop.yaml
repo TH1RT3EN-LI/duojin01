@@ -1,0 +1,21 @@
+
+teleop_estop:
+  ros__parameters:
+    require_enable_button: true
+    enable_button: 0   # A 键
+
+    axis_linear:
+      x: -1
+      y: -1
+      z: -1
+
+    axis_angular:
+      yaw: -1
+
+    scale_linear:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+
+    scale_angular:
+      yaw: 0.0
