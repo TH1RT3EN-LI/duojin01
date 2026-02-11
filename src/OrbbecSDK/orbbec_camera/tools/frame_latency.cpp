@@ -52,7 +52,7 @@ void FrameLatencyNode::createListener(const std::string& topic_name,
                                       const rmw_qos_profile_t qos_profile) {
   RCLCPP_INFO_STREAM(logger_, "createListener");
   using namespace std::chrono_literals;
-  timer_ = this->create_wall_timer(1s, [this, topic_name = topic_name]() {
+  timer_ = this->create_wall_timer(1s, [this, topic_name=topic_name]() {
     // print fps
     RCLCPP_INFO_STREAM(logger_, "topic: " << topic_name << " fps: " << frame_count_ / 1.0);
     frame_count_ = 0;

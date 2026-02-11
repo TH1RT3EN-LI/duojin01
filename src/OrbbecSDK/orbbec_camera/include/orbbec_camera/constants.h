@@ -21,9 +21,9 @@
 
 #define THREAD_NUM 4
 
-#define OB_ROS_MAJOR_VERSION 2
-#define OB_ROS_MINOR_VERSION 7
-#define OB_ROS_PATCH_VERSION 2
+#define OB_ROS_MAJOR_VERSION 1
+#define OB_ROS_MINOR_VERSION 5
+#define OB_ROS_PATCH_VERSION 15
 
 #ifndef STRINGIFY
 #define STRINGIFY(arg) #arg
@@ -112,8 +112,6 @@ const int32_t OPENNI_END_PID = 0x06FF;
 const int32_t ASTRA_MINI_PID = 0x0404;
 const int32_t ASTRA_MINI_S_PID = 0x0407;
 const int GEMINI2_PID = 0x0670;
-const int GEMINI2L_PID = 0x0673;
-
 const int GEMINI2R_PID = 0x06d0;
 const int GEMINI2RL_PID = 0x06d1;
 
@@ -128,13 +126,8 @@ const int32_t GEMINI_330L_PID = 0x0805;   // Gemini 336L
 const int32_t GEMINI_336L_PID = 0x0807;   // Gemini 335Lg
 const int32_t GEMINI_335LG_PID = 0x080B;  // Gemini 336Lg
 const int32_t GEMINI_336LG_PID = 0x080D;
-const int32_t GEMINI_335LE_PID = 0x080E;                  // Gemini 335Le
-const int32_t GEMINI_336LE_PID = 0x0810;                  // Gemini 335Le
-const int32_t CUSTOM_ADVANTECH_GEMINI_336_PID = 0x0816;   // Custom Advantech Gemini 336
-const int32_t CUSTOM_ADVANTECH_GEMINI_336L_PID = 0x0817;  // Custom Advantech Gemini 336L
-const int32_t DABAI_MAX_PID = 0x069a;                     // dabai max
-const int32_t GEMINI_338_PID = 0x0818;                    // Gemini 338
-const uint16_t GEMINI_435Le_PID = 0x815;                  // Gemini 435Le
-const uint16_t GEMINI_305_PID = 0x0840;                   // Gemini 305
+const int32_t GEMINI_335LE_PID = 0x080E;  // Gemini 335Le
+const int32_t GEMINI_336LE_PID = 0x0810;  // Gemini 335Le
+const int32_t DABAI_MAX_PID = 0x069a;     // dabai max
 
 }  // namespace orbbec_camera

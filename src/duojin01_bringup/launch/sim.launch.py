@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -11,7 +12,7 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration
+from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -19,6 +20,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 def generate_launch_description():
     bringup_share = get_package_share_directory("duojin01_bringup")
     description_share = get_package_share_directory("duojin01_description")
+    orbbec_description_share = get_package_share_directory("orbbec_description")
 
     world_path = os.path.join(bringup_share, "worlds", "empty_world.sdf")
     ekf_config_path = os.path.join(bringup_share, "config", "ekf.yaml")
@@ -28,13 +30,25 @@ def generate_launch_description():
     watchdog_config_path = os.path.join(watchdog_share, "config", "safety_watchdog.yaml")
 
     description_share_parent = os.path.dirname(description_share)
+    orbbec_description_share_parent = os.path.dirname(orbbec_description_share)
+    resource_path = ":".join(
+        [description_share_parent, orbbec_description_share_parent, bringup_share, "/usr/share/ignition"]
+    )
 
     urdf_file = os.path.join(description_share, "urdf", "duojin01.xacro")
+
+    if shutil.which("ign"):
+        gazebo_cmd = ["ign", "gazebo"]
+    else:
+        gazebo_cmd = ["gz", "sim"]
 
     headless = LaunchConfiguration("headless")
     world_name = LaunchConfiguration("world_name")
     use_sim_time = LaunchConfiguration("use_sim_time")
     use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
+    render_engine = LaunchConfiguration("render_engine")
+    software_gl = LaunchConfiguration("software_gl")
+    separate_gui = LaunchConfiguration("separate_gui")
 
     use_sim_tf = LaunchConfiguration("use_sim_tf")
     controller_port = LaunchConfiguration("controller_port")
@@ -123,6 +137,141 @@ def generate_launch_description():
         condition=IfCondition(use_sim_tf),
     )
 
+
+    orbbec_topic_compat = Node(
+        package="duojin01_sim_tools",
+        executable="orbbec_topic_compat_node",
+        name="orbbec_topic_compat",
+        output="screen",
+        parameters=[{"use_sim_time": use_sim_time_param}],
+    )
+
+    camera_link_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="camera_link_tf",
+        output="screen",
+        arguments=[
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "1",
+            "depth_cam",
+            "camera_link",
+        ],
+    )
+
+    camera_depth_frame_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="camera_depth_frame_tf",
+        output="screen",
+        arguments=[
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "1",
+            "camera_link",
+            "camera_depth_frame",
+        ],
+    )
+
+    camera_color_frame_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="camera_color_frame_tf",
+        output="screen",
+        arguments=[
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "1",
+            "camera_link",
+            "camera_color_frame",
+        ],
+    )
+
+    camera_ir_frame_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="camera_ir_frame_tf",
+        output="screen",
+        arguments=[
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "1",
+            "camera_link",
+            "camera_ir_frame",
+        ],
+    )
+
+    camera_depth_optical_frame_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="camera_depth_optical_frame_tf",
+        output="screen",
+        arguments=[
+            "0",
+            "0",
+            "0",
+            "-0.5",
+            "0.5",
+            "-0.5",
+            "0.5",
+            "camera_depth_frame",
+            "camera_depth_optical_frame",
+        ],
+    )
+
+    camera_color_optical_frame_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="camera_color_optical_frame_tf",
+        output="screen",
+        arguments=[
+            "0",
+            "0",
+            "0",
+            "-0.5",
+            "0.5",
+            "-0.5",
+            "0.5",
+            "camera_color_frame",
+            "camera_color_optical_frame",
+        ],
+    )
+
+    camera_ir_optical_frame_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="camera_ir_optical_frame_tf",
+        output="screen",
+        arguments=[
+            "0",
+            "0",
+            "0",
+            "-0.5",
+            "0.5",
+            "-0.5",
+            "0.5",
+            "camera_ir_frame",
+            "camera_ir_optical_frame",
+        ],
+    )
+
     twist_mux_config_path = os.path.join(bringup_share, "config", "twist_mux.yaml")
 
     twist_mux_node = Node(
@@ -199,33 +348,83 @@ def generate_launch_description():
         [
             SetEnvironmentVariable(
                 name="IGN_GAZEBO_RESOURCE_PATH",
-                value=":".join([description_share_parent, bringup_share, "/usr/share/ignition"]),
+                value=resource_path,
             ),
+            SetEnvironmentVariable(name="GZ_SIM_RESOURCE_PATH", value=resource_path),
             DeclareLaunchArgument("world", default_value=world_path),
             DeclareLaunchArgument("world_name", default_value="empty_world"),
             DeclareLaunchArgument("headless", default_value="false"),
             DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="true")),
+            DeclareLaunchArgument("render_engine", default_value=EnvironmentVariable("IGN_RENDER_ENGINE", default_value="ogre")),
+            DeclareLaunchArgument("software_gl", default_value=EnvironmentVariable("DUOJIN01_SOFTWARE_GL", default_value="false")),
+            DeclareLaunchArgument("separate_gui", default_value="true"),
             SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
+            SetEnvironmentVariable("LIBGL_DRI3_DISABLE", "1"),
+            SetEnvironmentVariable("LIBGL_ALWAYS_SOFTWARE", "1", condition=IfCondition(software_gl)),
+            SetEnvironmentVariable("MESA_LOADER_DRIVER_OVERRIDE", "llvmpipe", condition=IfCondition(software_gl)),
+            SetEnvironmentVariable("QT_XCB_GL_INTEGRATION", "none", condition=IfCondition(software_gl)),
+            SetEnvironmentVariable("QT_OPENGL", "software", condition=IfCondition(software_gl)),
             DeclareLaunchArgument("use_sim_tf", default_value="false"),
-            DeclareLaunchArgument("controller_port", default_value="/tmp/duojin01_controller"),
+            DeclareLaunchArgument(
+                "controller_port",
+                default_value=EnvironmentVariable("DUOJIN01_CONTROLLER_PORT", default_value="/tmp/duojin01_controller"),
+            ),
             DeclareLaunchArgument("use_teleop", default_value="true"),
-            DeclareLaunchArgument("use_foxglove", default_value="false"),
+            DeclareLaunchArgument("use_foxglove", default_value="true"),
             ExecuteProcess(
-                cmd=["ign", "gazebo", "-r", "-s", "--headless-rendering", LaunchConfiguration("world")],
+                cmd=gazebo_cmd
+                + [
+                    "-r",
+                    "-s",
+                    "--headless-rendering",
+                    "--render-engine-server",
+                    render_engine,
+                    LaunchConfiguration("world"),
+                ],
                 output="screen",
                 condition=IfCondition(headless),
             ),
             ExecuteProcess(
-                cmd=["ign", "gazebo", "-r", LaunchConfiguration("world")],
+                cmd=gazebo_cmd
+                + ["-r", "-s", "--render-engine-server", render_engine, LaunchConfiguration("world")],
                 output="screen",
-                condition=UnlessCondition(headless),
+                condition=IfCondition(
+                    PythonExpression(['"', headless, '" == "false" and "', separate_gui, '" == "true"'])
+                ),
+            ),
+            TimerAction(
+                period=1.5,
+                actions=[
+                    ExecuteProcess(
+                        cmd=gazebo_cmd + ["-g", "--render-engine-gui", render_engine],
+                        output="screen",
+                    )
+                ],
+                condition=IfCondition(
+                    PythonExpression(['"', headless, '" == "false" and "', separate_gui, '" == "true"'])
+                ),
+            ),
+            ExecuteProcess(
+                cmd=gazebo_cmd + ["-r", "--render-engine", render_engine, LaunchConfiguration("world")],
+                output="screen",
+                condition=IfCondition(
+                    PythonExpression(['"', headless, '" == "false" and "', separate_gui, '" == "false"'])
+                ),
             ),
             robot_state_publisher,
             joint_state_stamp_fix,
             clock_guard,
             ros_gz_bridge,
+            orbbec_topic_compat,
             controller_emulator,
             sim_odom_to_tf,
+            camera_link_tf,
+            camera_depth_frame_tf,
+            camera_color_frame_tf,
+            camera_ir_frame_tf,
+            camera_depth_optical_frame_tf,
+            camera_color_optical_frame_tf,
+            camera_ir_optical_frame_tf,
             twist_mux_node,
             base_driver,
             safety_watchdog,

@@ -27,7 +27,7 @@ namespace orbbec_camera {
 class D2CViewer {
  public:
   explicit D2CViewer(rclcpp::Node* const node, rmw_qos_profile_t rgb_qos,
-                     rmw_qos_profile_t depth_qos, bool use_intra_process = false);
+                     rmw_qos_profile_t depth_qos);
   ~D2CViewer();
 
   void messageCallback(const sensor_msgs::msg::Image::ConstSharedPtr & rgb_msg,
@@ -42,9 +42,5 @@ class D2CViewer {
                                                                        sensor_msgs::msg::Image>;
   std::shared_ptr<message_filters::Synchronizer<MySyncPolicy>> sync_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr d2c_viewer_pub_;
-
-  // Add thread safety
-  std::mutex callback_mutex_;
-  std::atomic<bool> is_active_{true};
 };
 }  // namespace orbbec_camera

@@ -11,6 +11,7 @@
   <xacro:property name="use_shaft_collision" value="false" />
 
   <xacro:include filename="sensors/lidar.xacro" />
+  <xacro:include filename="sensors/camera.xacro" />
 
   <xacro:macro name="box_inertial" params="m x y z">
     <inertial>
@@ -241,6 +242,36 @@
       <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
     </inertial>
   </link>
+
+  <link name="depth_cam">
+    <visual>
+      <origin xyz="0 0 0.0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://duojin01_description/meshes/depth_camera.stl"
+          scale="1 1 1" />
+      </geometry>
+      <material name="black" />
+    </visual>
+  </link>
+
+  <joint name="depth_cam_joint" type="fixed">
+    <origin xyz="0.15 0 0.1" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="depth_cam" />
+  </joint>
+
+  <!-- Simulated RGBD camera attached on depth_cam link -->
+  <xacro:rgbd_camera_sensor
+    reference_link="depth_cam"
+    sensor_name="depth_cam_rgbd"
+    topic="/camera"
+    update_rate="15"
+    hfov="1.047"
+    width="640"
+    height="480"
+    near_clip="0.1"
+    far_clip="10.0"
+    visualize="false" />
 
   <gazebo>
     <!-- 监听 ROS Topic /cmd_vel,用来直接驱动车辆全向移动 -->

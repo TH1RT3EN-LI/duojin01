@@ -1,10 +1,10 @@
-// Copyright (c) Orbbec Inc. All Rights Reserved.
-// Licensed under the MIT License.
+﻿/* License: Apache 2.0. See LICENSE file in root directory.
+    Copyright(c) 2020  Orbbec Corporation. All Rights Reserved. */
 
 /**
  * \file ObSensor.h
- * \brief This file serves as the C entrance for the SDK library.
- *        It includes all necessary header files for SDK usage.
+ * \brief This file serves as the C entrance for the OrbbecSDK library.
+ *        It includes all necessary header files for OrbbecSDK usage.
  */
 #pragma once
 
@@ -16,8 +16,7 @@
 #include <libobsensor/h/ObTypes.h>
 #include <libobsensor/h/Pipeline.h>
 #include <libobsensor/h/Property.h>
+#include <libobsensor/h/RecordPlayback.h>
 #include <libobsensor/h/Sensor.h>
 #include <libobsensor/h/StreamProfile.h>
 #include <libobsensor/h/Version.h>
-#include <libobsensor/h/TypeHelper.h>
-#include <libobsensor/h/RecordPlayback.h>

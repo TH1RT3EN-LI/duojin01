@@ -2,44 +2,9 @@
 Changelog for package orbbec_camera_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
-* Add DeviceStatus.msg
-* Add GetUserCalibParams.srv
-* Add SetUserCalibParams.srv
-* Add string current_sdk_version field to DeviceInfo.msg
-* Contributors: obyalian, slz, xiexun
-
-2.4.7 (2025-09-01)
-------------------
-
-2.4.5 (2025-07-04)
-------------------
-* Add .camke-format.py and format CMakeLists.txt
-* Contributors: jj
-
-2.4.3 (2025-05-22)
-------------------
-
-2.3.4 (2025-04-21)
-------------------
-* Add service to set color and depth ROI
-* Contributors: jj
-
-2.2.4 (2025-02-28)
-------------------
-
-2.2.3 (2025-02-15)
-------------------
-* Add service switch and parameter setting interface for DecimationFilter, HDRMerge, SequencedFilter, ThresholdFilter, NoiseRemovalFilter, HardwareNoiseRemoval, SpatialAdvancedFilter and TemporalFilter
-* Contributors: jj
-
-2.1.1 (2024-12-24)
-------------------
-* Merge pull request #59 from orbbec/zerocopy
-  chore: add gemini_intra_process_demo
-* chore: add gemini_intra_process_demo
-* chore: add license
+1.5.14 (2025-09-30)
+-------------------
+* add RGBD.msg
 * Contributors: Joe Dong
 
 1.5.8 (2024-06-22)

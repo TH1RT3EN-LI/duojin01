@@ -2,41 +2,14 @@
 Changelog for package orbbec_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
-
-2.4.7 (2025-09-01)
-------------------
-* Add Gemini 335Le in orbbec_description
-* Contributors: jj
-
-2.4.5 (2025-07-04)
-------------------
-* Add .camke-format.py and format CMakeLists.txt
-* Update orbbec_description
-* Contributors: jj
-
-2.4.3 (2025-05-22)
-------------------
-
-2.3.4 (2025-04-21)
-------------------
-
-2.2.4 (2025-02-28)
-------------------
-
-2.2.3 (2025-02-15)
-------------------
-
-2.1.1 (2024-12-24)
-------------------
-* update gemini camera's urdf
+1.5.14 (2025-09-30)
+-------------------
 * chore: Add rviz config
 * Merge pull request #54 from Danilrivero/main
   Implement the femto_bolt.urdf.xacro description
 * Implement the femto_bolt.urdf.xacro description
 * chore: add license
-* Contributors: Joe Dong, danil.rivero, datean
+* Contributors: Joe Dong, danil.rivero
 
 1.5.8 (2024-06-22)
 ------------------

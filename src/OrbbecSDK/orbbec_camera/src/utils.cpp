@@ -23,7 +23,7 @@ sensor_msgs::msg::CameraInfo convertToCameraInfo(OBCameraIntrinsic intrinsic,
                                                  OBCameraDistortion distortion, int width) {
   (void)width;
   sensor_msgs::msg::CameraInfo info;
-  info.distortion_model = getDistortionModels(distortion);
+  info.distortion_model = sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
   info.width = intrinsic.width;
   info.height = intrinsic.height;
   info.d.resize(8, 0.0);
@@ -35,8 +35,6 @@ sensor_msgs::msg::CameraInfo convertToCameraInfo(OBCameraIntrinsic intrinsic,
   info.d[5] = distortion.k4;
   info.d[6] = distortion.k5;
   info.d[7] = distortion.k6;
-  bool all_zero = std::all_of(info.d.begin(), info.d.end(), [](double val) { return val == 0.0; });
-  info.roi.do_rectify = all_zero;
 
   info.k.fill(0.0);
   info.k[0] = intrinsic.fx;
@@ -60,7 +58,7 @@ sensor_msgs::msg::CameraInfo convertToCameraInfo(OBCameraIntrinsic intrinsic,
 }
 
 void saveRGBPointsToPly(const std::shared_ptr<ob::Frame> &frame, const std::string &fileName) {
-  size_t point_size = frame->getDataSize() / sizeof(OBColorPoint);
+  size_t point_size = frame->dataSize() / sizeof(OBColorPoint);
   FILE *fp = fopen(fileName.c_str(), "wb+");
   std::shared_ptr<int> fp_guard(nullptr, [&fp](int *) {
     fflush(fp);
@@ -77,7 +75,7 @@ void saveRGBPointsToPly(const std::shared_ptr<ob::Frame> &frame, const std::stri
   fprintf(fp, "property uchar blue\n");
   fprintf(fp, "end_header\n");
 
-  const auto *points = (OBColorPoint *)frame->getData();
+  const auto *points = (OBColorPoint *)frame->data();
   CHECK_NOTNULL(points);
   for (size_t i = 0; i < point_size; i++) {
     fprintf(fp, "%.3f %.3f %.3f %d %d %d\n", points[i].x, points[i].y, points[i].z,
@@ -174,7 +172,7 @@ void saveDepthPointsToPly(const sensor_msgs::msg::PointCloud2::UniquePtr &msg,
 }
 
 void savePointsToPly(const std::shared_ptr<ob::Frame> &frame, const std::string &fileName) {
-  size_t point_size = frame->getDataSize() / sizeof(OBPoint);
+  size_t point_size = frame->dataSize() / sizeof(OBPoint);
   FILE *fp = fopen(fileName.c_str(), "wb+");
   std::shared_ptr<int> fp_guard(nullptr, [&fp](int *) {
     fflush(fp);
@@ -190,7 +188,7 @@ void savePointsToPly(const std::shared_ptr<ob::Frame> &frame, const std::string 
   fprintf(fp, "property float z\n");
   fprintf(fp, "end_header\n");
 
-  const auto *points = (OBPoint *)frame->getData();
+  const auto *points = (OBPoint *)frame->data();
   CHECK_NOTNULL(points);
   for (size_t i = 0; i < point_size; i++) {
     fprintf(fp, "%.3f %.3f %.3f\n", points[i].x, points[i].y, points[i].z);
@@ -199,6 +197,8 @@ void savePointsToPly(const std::shared_ptr<ob::Frame> &frame, const std::string 
 
 tf2::Quaternion rotationMatrixToQuaternion(const float rotation[9]) {
   Eigen::Matrix3f m;
+  // We need to be careful about the order, as RS2 rotation matrix is
+  // column-major, while Eigen::Matrix3f expects row-major.
   m << rotation[0], rotation[1], rotation[2], rotation[3], rotation[4], rotation[5], rotation[6],
       rotation[7], rotation[8];
   Eigen::Quaternionf q(m);
@@ -270,7 +270,6 @@ OBFormat OBFormatFromString(const std::string &format) {
   std::string fixed_format;
   std::transform(format.begin(), format.end(), std::back_inserter(fixed_format),
                  [](const auto ch) { return std::isalpha(ch) ? toupper(ch) : ch; });
-  std::cout << "OBFormatFromString: " << fixed_format << std::endl;
   if (fixed_format == "MJPG") {
     return OB_FORMAT_MJPG;
   } else if (fixed_format == "MJPEG") {
@@ -339,43 +338,10 @@ OBFormat OBFormatFromString(const std::string &format) {
     return OB_FORMAT_BYR2;
   } else if (fixed_format == "RW16") {
     return OB_FORMAT_RW16;
-  } else if (fixed_format == "Y12C4") {
-    return OB_FORMAT_Y12C4;
-  } else if (fixed_format == "LIDAR_POINT") {
-    return OB_FORMAT_LIDAR_POINT;
-  } else if (fixed_format == "LIDAR_SPHERE_POINT") {
-    return OB_FORMAT_LIDAR_SPHERE_POINT;
-  } else if (fixed_format == "LIDAR_SCAN") {
-    return OB_FORMAT_LIDAR_SCAN;
-  } else if (fixed_format == "LIDAR_CALIBRATION") {
-    return OB_FORMAT_LIDAR_CALIBRATION;
-  }
-  //   else if (fixed_format == "DISP16") {
-  //     return OB_FORMAT_DISP16;
-  //   }
-  else {
-    return OB_FORMAT_UNKNOWN;
-  }
-}
-
-OBLiDARScanRate OBScanRateFromInt(const int rate) {
-  std::cout << "OBScanRateFromInt: " << rate << std::endl;
-  if (rate == 5) {
-    return OB_LIDAR_SCAN_5HZ;
-  } else if (rate == 10) {
-    return OB_LIDAR_SCAN_10HZ;
-  } else if (rate == 15) {
-    return OB_LIDAR_SCAN_15HZ;
-  } else if (rate == 20) {
-    return OB_LIDAR_SCAN_20HZ;
-  } else if (rate == 25) {
-    return OB_LIDAR_SCAN_25HZ;
-  } else if (rate == 30) {
-    return OB_LIDAR_SCAN_30HZ;
-  } else if (rate == 40) {
-    return OB_LIDAR_SCAN_40HZ;
+  } else if (fixed_format == "DISP16") {
+    return OB_FORMAT_DISP16;
   } else {
-    return OB_LIDAR_SCAN_UNKNOWN;
+    return OB_FORMAT_UNKNOWN;
   }
 }
 
@@ -447,10 +413,8 @@ std::string OBFormatToString(const OBFormat &format) {
       return "BYR2";
     case OB_FORMAT_RW16:
       return "RW16";
-    case OB_FORMAT_Y12C4:
-      return "Y12C4";
-    // case OB_FORMAT_DISP16:
-    //   return "DISP16";
+    case OB_FORMAT_DISP16:
+      return "DISP16";
     default:
       return "UNKNOWN";
   }
@@ -469,9 +433,6 @@ std::string ObDeviceTypeToString(const OBDeviceType &type) {
       return "structured light monocular camera";
     case OBDeviceType::OB_TOF_CAMERA:
       return "tof camera";
-    default:
-      // 处理其他未预见的情况
-      break;
   }
   return "unknown technology camera";
 }
@@ -504,7 +465,7 @@ bool isOpenNIDevice(int pid) {
       0x060f, 0x0610, 0x0613, 0x0614, 0x0616, 0x0617, 0x0618, 0x061b, 0x062b, 0x062c, 0x062d,
       0x0632, 0x0633, 0x0634, 0x0635, 0x0636, 0x0637, 0x0638, 0x0639, 0x063a, 0x0650, 0x0651,
       0x0654, 0x0655, 0x0656, 0x0657, 0x0658, 0x0659, 0x065a, 0x065b, 0x065c, 0x065d, 0x0698,
-      0x0699, 0x069a, 0x055c, 0x065e, 0x069a, 0x069f, 0x06a0, 0x069e};
+      0x0699, 0x069a, 0x055c, 0x065e, 0x069a, 0x069f, 0x06a0, 0x069e, 0x06aa, 0x06a6, 0x06a7};
 
   return std::any_of(OPENNI_DEVICE_PIDS.begin(), OPENNI_DEVICE_PIDS.end(),
                      [pid](int pid_openni) { return pid == pid_openni; });
@@ -706,14 +667,6 @@ OBAccelFullScaleRange fullAccelScaleRangeFromString(std::string &full_scale_rang
     return OB_ACCEL_FS_8g;
   } else if (full_scale_range == "16g") {
     return OB_ACCEL_FS_16g;
-  } else if (full_scale_range == "3g") {
-    return OB_ACCEL_FS_3g;
-  } else if (full_scale_range == "6g") {
-    return OB_ACCEL_FS_6g;
-  } else if (full_scale_range == "12g") {
-    return OB_ACCEL_FS_12g;
-  } else if (full_scale_range == "24g") {
-    return OB_ACCEL_FS_24g;
   } else {
     RCLCPP_ERROR_STREAM(rclcpp::get_logger("utils"),
                         "Unknown OB_ACCEL_FULL_SCALE_RANGE: " << full_scale_range);
@@ -731,14 +684,6 @@ std::string fullAccelScaleRangeToString(const OBAccelFullScaleRange &full_scale_
       return "8g";
     case OB_ACCEL_FS_16g:
       return "16g";
-    case OB_ACCEL_FS_3g:
-      return "3g";
-    case OB_ACCEL_FS_6g:
-      return "6g";
-    case OB_ACCEL_FS_12g:
-      return "12g";
-    case OB_ACCEL_FS_24g:
-      return "24g";
     default:
       return "2g";
   }
@@ -751,46 +696,30 @@ std::ostream &operator<<(std::ostream &os, const OBAccelFullScaleRange &rhs) {
 
 std::string parseUsbPort(const std::string &line) {
   std::string port_id;
-  std::regex usb_regex("(?:[^ ]+/usb[0-9]+[0-9./-]*/){0,1}([0-9.-]+)(:){0,1}[^ ]*",
-                       std::regex_constants::ECMAScript);
+  std::regex self_regex("(?:[^ ]+/usb[0-9]+[0-9./-]*/){0,1}([0-9.-]+)(:){0,1}[^ ]*",
+                        std::regex_constants::ECMAScript);
   std::smatch base_match;
-  bool found_usb = std::regex_match(line, base_match, usb_regex);
-
-  if (found_usb) {
+  bool found = std::regex_match(line, base_match, self_regex);
+  if (found) {
     port_id = base_match[1].str();
-    std::cout << "USB port_id: " << port_id << std::endl;
-
-    if (base_match[2].str().empty()) {
-      std::regex end_regex(".+(-[0-9]+$)", std::regex_constants::ECMAScript);
+    if (base_match[2].str().empty())  // This is libuvc string. Remove counter is exists.
+    {
+      std::regex end_regex = std::regex(".+(-[0-9]+$)", std::regex_constants::ECMAScript);
       bool found_end = std::regex_match(port_id, base_match, end_regex);
-
       if (found_end) {
         port_id = port_id.substr(0, port_id.size() - base_match[1].str().size());
-        std::cout << "Modified USB port_id: " << port_id << std::endl;
       }
     }
-
-    return port_id;
   }
-
-  std::regex gmsl_regex("(gmsl[0-9]+)(?:-[0-9]+)*(-[0-9]+)$", std::regex_constants::ECMAScript);
-  bool found_gmsl = std::regex_match(line, base_match, gmsl_regex);
-
-  if (found_gmsl) {
-    port_id = base_match[1].str() + base_match[2].str();
-    std::cout << "Parsed GMSL Port ID: " << port_id << std::endl;
-    return port_id;
-  }
-
-  return "";
+  return port_id;
 }
 
 bool isValidJPEG(const std::shared_ptr<ob::ColorFrame> &frame) {
-  if (frame->getDataSize() < 2) {  // Checking both start and end markers, so minimal size is 4
+  if (frame->dataSize() < 2) {  // Checking both start and end markers, so minimal size is 4
     return false;
   }
 
-  const auto *data = static_cast<const uint8_t *>(frame->getData());
+  const auto *data = static_cast<const uint8_t *>(frame->data());
 
   // Check for JPEG start marker
   if (data[0] != 0xFF || data[1] != 0xD8) {
@@ -865,10 +794,6 @@ std::string metaDataTypeToString(const OBFrameMetadataType &meta_data_type) {
       return "frame_emitter_mode";
     case OBFrameMetadataType::OB_FRAME_METADATA_TYPE_GPIO_INPUT_DATA:
       return "gpio_input_data";
-    case OBFrameMetadataType::OB_FRAME_METADATA_TYPE_DISPARITY_SEARCH_OFFSET:
-      return "disparity_search_offset";
-    case OBFrameMetadataType::OB_FRAME_METADATA_TYPE_DISPARITY_SEARCH_RANGE:
-      return "disparity search range";
     default:
       return "unknown_field";
   }
@@ -928,9 +853,9 @@ OBStreamType obStreamTypeFromString(const std::string &stream_type) {
   }
 }
 
-UndistortedImageResult undistortImage(const cv::Mat &image, const OBCameraIntrinsic &intrinsic,
-                                      const OBCameraDistortion &distortion) {
-  UndistortedImageResult result;
+cv::Mat undistortImage(const cv::Mat &image, const OBCameraIntrinsic &intrinsic,
+                       const OBCameraDistortion &distortion) {
+  cv::Mat undistorted_image;
   cv::Mat camera_matrix = cv::Mat::eye(3, 3, CV_64F);
   camera_matrix.at<double>(0, 0) = intrinsic.fx;
   camera_matrix.at<double>(1, 1) = intrinsic.fy;
@@ -940,80 +865,11 @@ UndistortedImageResult undistortImage(const cv::Mat &image, const OBCameraIntrin
   // Create the distortion coefficients matrix using the extended distortion model
   cv::Mat dist_coeffs = (cv::Mat_<float>(8, 1) << distortion.k1, distortion.k2, distortion.p1,
                          distortion.p2, distortion.k3, distortion.k4, distortion.k5, distortion.k6);
-  cv::Size image_size(image.cols, image.rows);
-  cv::Mat new_camera_matrix =
-      cv::getOptimalNewCameraMatrix(camera_matrix, dist_coeffs, image_size, 0.0, image_size);
-  // Undistort the image using the new camera matrix
-  cv::undistort(image, result.image, camera_matrix, dist_coeffs, new_camera_matrix);
-  // Update the intrinsic parameters with the new camera matrix
-  result.new_intrinsic = intrinsic;  // Copy original values first
-  result.new_intrinsic.fx = new_camera_matrix.at<double>(0, 0);
-  result.new_intrinsic.fy = new_camera_matrix.at<double>(1, 1);
-  result.new_intrinsic.cx = new_camera_matrix.at<double>(0, 2);
-  result.new_intrinsic.cy = new_camera_matrix.at<double>(1, 2);
-  result.new_intrinsic.width = image.cols;
-  result.new_intrinsic.height = image.rows;
-  return result;
+
+  // Undistort the image using OpenCV's undistort function
+  // This function corrects for lens distortion
+  cv::undistort(image, undistorted_image, camera_matrix, dist_coeffs);
+
+  return undistorted_image;
 }
-std::string getDistortionModels(OBCameraDistortion distortion) {
-  switch (distortion.model) {
-    case OB_DISTORTION_NONE:
-      return sensor_msgs::distortion_models::PLUMB_BOB;
-    case OB_DISTORTION_MODIFIED_BROWN_CONRADY:
-      return sensor_msgs::distortion_models::PLUMB_BOB;
-    case OB_DISTORTION_INVERSE_BROWN_CONRADY:
-      return sensor_msgs::distortion_models::PLUMB_BOB;
-    case OB_DISTORTION_BROWN_CONRADY:
-      return sensor_msgs::distortion_models::PLUMB_BOB;
-    case OB_DISTORTION_BROWN_CONRADY_K6:
-      return sensor_msgs::distortion_models::PLUMB_BOB;
-    case OB_DISTORTION_KANNALA_BRANDT4:
-      return sensor_msgs::distortion_models::EQUIDISTANT;
-    default:
-      return sensor_msgs::distortion_models::PLUMB_BOB;
-  }
-}
-
-std::string calcMD5(const std::string &data) {
-  unsigned char digest[EVP_MAX_MD_SIZE];
-  unsigned int digest_len = 0;
-
-  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-  EVP_DigestInit_ex(ctx, EVP_md5(), nullptr);
-  EVP_DigestUpdate(ctx, data.data(), data.size());
-  EVP_DigestFinal_ex(ctx, digest, &digest_len);
-  EVP_MD_CTX_free(ctx);
-
-  std::stringstream ss;
-  ss << std::hex << std::setfill('0');
-  for (unsigned int i = 0; i < digest_len; ++i) ss << std::setw(2) << (int)digest[i];
-  return ss.str();
-}
-double getScanAngleIncrement(OBLiDARScanRate fps) {
-  switch (fps) {
-    case OB_LIDAR_SCAN_15HZ:
-      return deg2rad(0.075);
-    case OB_LIDAR_SCAN_20HZ:
-      return deg2rad(0.1);
-    case OB_LIDAR_SCAN_25HZ:
-      return deg2rad(0.125);
-    case OB_LIDAR_SCAN_30HZ:
-      return deg2rad(0.15);
-    case OB_LIDAR_SCAN_40HZ:
-      return deg2rad(0.2);
-    default:
-      return deg2rad(0.1);
-  }
-}
-
-double deg2rad(double deg) { return deg * M_PI / 180.0; }
-
-double rad2deg(double rad) {
-  double angle_degrees = rad * (180.0 / M_PI);
-  if (angle_degrees < 0) {
-    angle_degrees += 360.0;
-  }
-  return angle_degrees;
-}
-
 }  // namespace orbbec_camera

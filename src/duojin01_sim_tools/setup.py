@@ -25,6 +25,7 @@ setup(
             "odom_to_tf_node = duojin01_sim_tools.odom_to_tf_node:main",
             "initial_pose_publisher = duojin01_sim_tools.initial_pose_publisher:main",
             "clock_guard_node = duojin01_sim_tools.clock_guard_node:main",
+            "orbbec_topic_compat_node = duojin01_sim_tools.orbbec_topic_compat_node:main",
         ],
     },
 )

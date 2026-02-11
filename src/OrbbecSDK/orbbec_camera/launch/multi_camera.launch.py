@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction, ExecuteProcess, TimerAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction, ExecuteProcess
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
@@ -16,13 +16,9 @@ def generate_launch_description():
         ),
         launch_arguments={
             'camera_name': 'camera_01',
-            'usb_port': '2-1',
+            'usb_port': '2-1.1',
             'device_num': '2',
-            'sync_mode': 'standalone',
-            'enable_left_ir': 'true',
-            'enable_right_ir': 'true',
-            'log_level': 'none',
-            'log_file_name': 'camera_01.log',
+            'sync_mode': 'standalone'
         }.items()
     )
 
@@ -32,13 +28,9 @@ def generate_launch_description():
         ),
         launch_arguments={
             'camera_name': 'camera_02',
-            'usb_port': '2-3',
+            'usb_port': '2-1.2.1',
             'device_num': '2',
-            'sync_mode': 'standalone',
-            'enable_left_ir': 'true',
-            'enable_right_ir': 'true',
-            'log_level': 'none',
-            'log_file_name': 'camera_02.log',
+            'sync_mode': 'standalone'
         }.items()
     )
 
@@ -46,8 +38,8 @@ def generate_launch_description():
 
     # Launch description
     ld = LaunchDescription([
-            TimerAction(period=0.0, actions=[GroupAction([launch2_include])]),
-            TimerAction(period=2.0, actions=[GroupAction([launch1_include])]),
+        GroupAction([launch1_include]),
+        GroupAction([launch2_include]),
     ])
 
     return ld
