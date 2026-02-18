@@ -46,11 +46,13 @@ def generate_launch_description():
     world_name = LaunchConfiguration("world_name")
     use_sim_time = LaunchConfiguration("use_sim_time")
     use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
+    sim_profile = LaunchConfiguration("sim_profile")
     render_engine = LaunchConfiguration("render_engine")
     software_gl = LaunchConfiguration("software_gl")
     separate_gui = LaunchConfiguration("separate_gui")
 
     use_sim_tf = LaunchConfiguration("use_sim_tf")
+    use_sim_camera = LaunchConfiguration("use_sim_camera")
     controller_port = LaunchConfiguration("controller_port")
     use_teleop = LaunchConfiguration("use_teleop")
     use_foxglove = LaunchConfiguration("use_foxglove")
@@ -144,6 +146,7 @@ def generate_launch_description():
         name="orbbec_topic_compat",
         output="screen",
         parameters=[{"use_sim_time": use_sim_time_param}],
+        condition=IfCondition(use_sim_camera),
     )
 
     camera_link_tf = Node(
@@ -162,6 +165,7 @@ def generate_launch_description():
             "depth_cam",
             "camera_link",
         ],
+        condition=IfCondition(use_sim_camera),
     )
 
     camera_depth_frame_tf = Node(
@@ -180,6 +184,7 @@ def generate_launch_description():
             "camera_link",
             "camera_depth_frame",
         ],
+        condition=IfCondition(use_sim_camera),
     )
 
     camera_color_frame_tf = Node(
@@ -198,6 +203,7 @@ def generate_launch_description():
             "camera_link",
             "camera_color_frame",
         ],
+        condition=IfCondition(use_sim_camera),
     )
 
     camera_ir_frame_tf = Node(
@@ -216,6 +222,7 @@ def generate_launch_description():
             "camera_link",
             "camera_ir_frame",
         ],
+        condition=IfCondition(use_sim_camera),
     )
 
     camera_depth_optical_frame_tf = Node(
@@ -234,6 +241,7 @@ def generate_launch_description():
             "camera_depth_frame",
             "camera_depth_optical_frame",
         ],
+        condition=IfCondition(use_sim_camera),
     )
 
     camera_color_optical_frame_tf = Node(
@@ -252,6 +260,7 @@ def generate_launch_description():
             "camera_color_frame",
             "camera_color_optical_frame",
         ],
+        condition=IfCondition(use_sim_camera),
     )
 
     camera_ir_optical_frame_tf = Node(
@@ -270,6 +279,7 @@ def generate_launch_description():
             "camera_ir_frame",
             "camera_ir_optical_frame",
         ],
+        condition=IfCondition(use_sim_camera),
     )
 
     twist_mux_config_path = os.path.join(bringup_share, "config", "twist_mux.yaml")
@@ -355,10 +365,27 @@ def generate_launch_description():
             DeclareLaunchArgument("world_name", default_value="empty_world"),
             DeclareLaunchArgument("headless", default_value="false"),
             DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="true")),
-            DeclareLaunchArgument("render_engine", default_value=EnvironmentVariable("IGN_RENDER_ENGINE", default_value="ogre")),
-            DeclareLaunchArgument("software_gl", default_value=EnvironmentVariable("DUOJIN01_SOFTWARE_GL", default_value="false")),
+            DeclareLaunchArgument(
+                "use_sim_camera",
+                default_value=EnvironmentVariable("DUOJIN01_SIM_CAMERA_ENABLED", default_value="false"),
+            ),
+            DeclareLaunchArgument(
+                "sim_profile",
+                default_value=EnvironmentVariable("DUOJIN01_SIM_PROFILE", default_value="gpu"),
+                description="simulation profile: gpu or cpu",
+            ),
+            DeclareLaunchArgument(
+                "render_engine",
+                default_value=EnvironmentVariable("IGN_RENDER_ENGINE", default_value="ogre"),
+            ),
+            DeclareLaunchArgument(
+                "software_gl",
+                default_value=PythonExpression(['"true" if "', sim_profile, '" == "cpu" else "false"']),
+            ),
             DeclareLaunchArgument("separate_gui", default_value="true"),
             SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
+            SetEnvironmentVariable("DUOJIN01_SIM_CAMERA_ENABLED", use_sim_camera),
+            SetEnvironmentVariable("DUOJIN01_SIM_PROFILE", sim_profile),
             SetEnvironmentVariable("LIBGL_DRI3_DISABLE", "1"),
             SetEnvironmentVariable("LIBGL_ALWAYS_SOFTWARE", "1", condition=IfCondition(software_gl)),
             SetEnvironmentVariable("MESA_LOADER_DRIVER_OVERRIDE", "llvmpipe", condition=IfCondition(software_gl)),
@@ -370,7 +397,7 @@ def generate_launch_description():
                 default_value=EnvironmentVariable("DUOJIN01_CONTROLLER_PORT", default_value="/tmp/duojin01_controller"),
             ),
             DeclareLaunchArgument("use_teleop", default_value="true"),
-            DeclareLaunchArgument("use_foxglove", default_value="true"),
+            DeclareLaunchArgument("use_foxglove", default_value="false"),
             ExecuteProcess(
                 cmd=gazebo_cmd
                 + [

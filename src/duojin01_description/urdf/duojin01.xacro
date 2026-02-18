@@ -9,6 +9,13 @@
   <xacro:property name="wheel_mu1" value="$(optenv DUOJIN01_WHEEL_MU1 0.0)" />
   <xacro:property name="wheel_mu2" value="$(optenv DUOJIN01_WHEEL_MU2 0.0)" />
   <xacro:property name="use_shaft_collision" value="false" />
+  <xacro:property name="sim_camera_enabled" value="$(optenv DUOJIN01_SIM_CAMERA_ENABLED true)" />
+  <xacro:property name="sim_camera_update_rate" value="$(optenv DUOJIN01_SIM_CAMERA_UPDATE_RATE 15)" />
+  <xacro:property name="sim_camera_hfov" value="$(optenv DUOJIN01_SIM_CAMERA_HFOV 1.047)" />
+  <xacro:property name="sim_camera_width" value="$(optenv DUOJIN01_SIM_CAMERA_WIDTH 640)" />
+  <xacro:property name="sim_camera_height" value="$(optenv DUOJIN01_SIM_CAMERA_HEIGHT 480)" />
+  <xacro:property name="sim_camera_near_clip" value="$(optenv DUOJIN01_SIM_CAMERA_NEAR_CLIP 0.1)" />
+  <xacro:property name="sim_camera_far_clip" value="$(optenv DUOJIN01_SIM_CAMERA_FAR_CLIP 10.0)" />
 
   <xacro:include filename="sensors/lidar.xacro" />
   <xacro:include filename="sensors/camera.xacro" />
@@ -260,18 +267,20 @@
     <child link="depth_cam" />
   </joint>
 
-  <!-- Simulated RGBD camera attached on depth_cam link -->
-  <xacro:rgbd_camera_sensor
-    reference_link="depth_cam"
-    sensor_name="depth_cam_rgbd"
-    topic="/camera"
-    update_rate="15"
-    hfov="1.047"
-    width="640"
-    height="480"
-    near_clip="0.1"
-    far_clip="10.0"
-    visualize="false" />
+  <xacro:if value="${str(sim_camera_enabled).lower() == 'true' or str(sim_camera_enabled) == '1'}">
+    <!-- Simulated RGBD camera attached on depth_cam link -->
+    <xacro:rgbd_camera_sensor
+      reference_link="depth_cam"
+      sensor_name="depth_cam_rgbd"
+      topic="/camera"
+      update_rate="${sim_camera_update_rate}"
+      hfov="${sim_camera_hfov}"
+      width="${sim_camera_width}"
+      height="${sim_camera_height}"
+      near_clip="${sim_camera_near_clip}"
+      far_clip="${sim_camera_far_clip}"
+      visualize="false" />
+  </xacro:if>
 
   <gazebo>
     <!-- 监听 ROS Topic /cmd_vel,用来直接驱动车辆全向移动 -->

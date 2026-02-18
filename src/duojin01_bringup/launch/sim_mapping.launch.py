@@ -15,6 +15,8 @@ def generate_launch_description():
 
     headless = LaunchConfiguration("headless")
     use_sim_time = LaunchConfiguration("use_sim_time")
+    sim_profile = LaunchConfiguration("sim_profile")
+    use_sim_camera = LaunchConfiguration("use_sim_camera")
     use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
     use_rviz = LaunchConfiguration("use_rviz")
     use_foxglove = LaunchConfiguration("use_foxglove")
@@ -25,6 +27,8 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "sim.launch.py")),
         launch_arguments={
             "headless": headless,
+            "sim_profile": sim_profile,
+            "use_sim_camera": use_sim_camera,
             "use_sim_tf": "true",
             "use_teleop": "true",
             "use_foxglove": use_foxglove,
@@ -64,6 +68,11 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("headless", default_value="false"),
             DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="true")),
+            DeclareLaunchArgument("sim_profile", default_value=EnvironmentVariable("DUOJIN01_SIM_PROFILE", default_value="gpu")),
+            DeclareLaunchArgument(
+                "use_sim_camera",
+                default_value=EnvironmentVariable("DUOJIN01_SIM_CAMERA_ENABLED", default_value="false"),
+            ),
             SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
             DeclareLaunchArgument("use_rviz", default_value="true"),
             DeclareLaunchArgument("use_foxglove", default_value="false"),
