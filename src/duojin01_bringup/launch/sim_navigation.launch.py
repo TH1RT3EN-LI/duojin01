@@ -1,10 +1,11 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from nav2_common.launch import RewrittenYaml
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -48,9 +49,19 @@ def generate_launch_description():
     use_sim_camera = LaunchConfiguration("use_sim_camera")
     use_rviz = LaunchConfiguration("use_rviz")
     use_foxglove = LaunchConfiguration("use_foxglove")
+    rviz_config = LaunchConfiguration("rviz_config")
+    rviz_software_gl = LaunchConfiguration("rviz_software_gl")
     map_yaml = LaunchConfiguration("map")
     params_file = LaunchConfiguration("params_file")
     use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
+    default_rviz_config = PathJoinSubstitution([bringup_share, "config", "rviz", "navigation.rviz"])
+    sim_nav_params = RewrittenYaml(
+        source_file=params_file,
+        param_rewrites={
+            "odom_topic": "/odom",
+        },
+        convert_types=True,
+    )
 
     sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "sim.launch.py")),
@@ -61,6 +72,9 @@ def generate_launch_description():
             "use_sim_tf": "true",
             "use_teleop": "false",
             "use_foxglove": use_foxglove,
+            "use_rviz": use_rviz,
+            "rviz_config": rviz_config,
+            "rviz_software_gl": rviz_software_gl,
         }.items(),
     )
 
@@ -68,9 +82,9 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "nav2.launch.py")),
         launch_arguments={
             "use_sim_time": use_sim_time,
-            "use_rviz": use_rviz,
+            "use_rviz": "false",
             "map": map_yaml,
-            "params_file": params_file,
+            "params_file": sim_nav_params,
         }.items(),
     )
 
@@ -103,6 +117,11 @@ def generate_launch_description():
             SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
             DeclareLaunchArgument("use_rviz", default_value="true"),
             DeclareLaunchArgument("use_foxglove", default_value="false"),
+            DeclareLaunchArgument(
+                "rviz_software_gl",
+                default_value=EnvironmentVariable("DUOJIN01_RVIZ_SOFTWARE_GL", default_value="true"),
+            ),
+            DeclareLaunchArgument("rviz_config", default_value=default_rviz_config),
             DeclareLaunchArgument(
                 "map",
                 default_value=default_map_yaml,

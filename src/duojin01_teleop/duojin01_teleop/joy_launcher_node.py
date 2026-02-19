@@ -231,6 +231,9 @@ class JoyLauncherNode(Node):
             self.running_procs.pop(btn, None)
 
     def _publish_rumble(self, intensity, duration_sec):
+        if not rclpy.ok():
+            return
+
         rumble_intensity = self._clamp_intensity(float(intensity))
 
         for rumble_id in (0, 1):
@@ -238,7 +241,10 @@ class JoyLauncherNode(Node):
             feedback.type = JoyFeedback.TYPE_RUMBLE
             feedback.id = rumble_id
             feedback.intensity = rumble_intensity
-            self.feedback_pub.publish(feedback)
+            try:
+                self.feedback_pub.publish(feedback)
+            except RuntimeError:
+                return
 
         if duration_sec > 0.0:
             self.feedback_stop_deadline = time.monotonic() + duration_sec

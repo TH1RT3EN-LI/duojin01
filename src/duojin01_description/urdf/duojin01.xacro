@@ -1,13 +1,15 @@
 <?xml version="1.0"?>
 <robot name="duojin01" xmlns:xacro="http://ros.org/wiki/xacro">
-  <!-- 该 URDF 仅适用于 Gazebo Ignition -->
+  <!-- 该 URDF 仅适用于 Gazebo Harmonic (gz-sim) -->
   <xacro:property name="PI" value="3.1415926535897931" />
   <xacro:property name="wheel_radius" value="0.050" />
   <xacro:property name="wheel_width" value="0.0505" />
 
-  <!-- 摩擦为 0 ，故轮仅产生视觉效果，不参与车辆的实际驱动 -->
-  <xacro:property name="wheel_mu1" value="$(optenv DUOJIN01_WHEEL_MU1 0.0)" />
-  <xacro:property name="wheel_mu2" value="$(optenv DUOJIN01_WHEEL_MU2 0.0)" />
+  <!-- Default sim dynamics: use direct body velocity control so Nav2 omni commands (vx, vy, wz) are faithfully applied in sim -->
+  <xacro:property name="wheel_mu1" value="$(optenv DUOJIN01_WHEEL_MU1 2.0)" />
+  <xacro:property name="wheel_mu2" value="$(optenv DUOJIN01_WHEEL_MU2 2.0)" />
+  <xacro:property name="sim_velocity_control_enabled" value="$(optenv DUOJIN01_SIM_VELOCITY_CONTROL_ENABLED true)" />
+  <xacro:property name="sim_mecanum_visual_drive_enabled" value="$(optenv DUOJIN01_SIM_MECANUM_VISUAL_DRIVE_ENABLED false)" />
   <xacro:property name="use_shaft_collision" value="false" />
   <xacro:property name="sim_camera_enabled" value="$(optenv DUOJIN01_SIM_CAMERA_ENABLED true)" />
   <xacro:property name="sim_camera_update_rate" value="$(optenv DUOJIN01_SIM_CAMERA_UPDATE_RATE 15)" />
@@ -283,15 +285,17 @@
   </xacro:if>
 
   <gazebo>
-    <!-- 监听 ROS Topic /cmd_vel,用来直接驱动车辆全向移动 -->
-    <plugin filename="ignition-gazebo-velocity-control-system"
-      name="ignition::gazebo::systems::VelocityControl">
-      <topic>/cmd_vel</topic>
-    </plugin>
+    <xacro:if value="${str(sim_velocity_control_enabled).lower() == 'true' or str(sim_velocity_control_enabled) == '1'}">
+      <!-- Listen /cmd_vel and directly apply body velocity in simulation -->
+      <plugin filename="gz-sim-velocity-control-system"
+        name="gz::sim::systems::VelocityControl">
+        <topic>/cmd_vel</topic>
+      </plugin>
+    </xacro:if>
 
     <!-- 计算并发布机器人相对于 odom_frame 的坐标 -->
-    <plugin filename="ignition-gazebo-odometry-publisher-system"
-      name="ignition::gazebo::systems::OdometryPublisher">
+    <plugin filename="gz-sim-odometry-publisher-system"
+      name="gz::sim::systems::OdometryPublisher">
       <odom_frame>odom</odom_frame>
       <robot_base_frame>base_footprint</robot_base_frame>
       <dimensions>2</dimensions>
@@ -299,25 +303,26 @@
       <odom_topic>/sim/odom</odom_topic>
     </plugin>
 
-    <!-- 监听 ROS Topic
-    /cmd_vel,将速度分配到四个轮子；为了提高性能，本仿真为使用真实的、每个滚子可动的麦轮，无法通过该插件实现全向移动，故目前该插件仅用于实现车轮转动的视觉效果 -->
-    <plugin filename="ignition-gazebo-mecanum-drive-system"
-      name="ignition::gazebo::systems::MecanumDrive">
-      <front_left_joint>upper_left_wheel_joint</front_left_joint>
-      <front_right_joint>upper_right_wheel_joint</front_right_joint>
-      <back_left_joint>lower_left_wheel_joint</back_left_joint>
-      <back_right_joint>lower_right_wheel_joint</back_right_joint>
+    <xacro:if value="${str(sim_mecanum_visual_drive_enabled).lower() == 'true' or str(sim_mecanum_visual_drive_enabled) == '1'}">
+      <!-- Optional physically-driven mecanum plugin. Keep disabled by default to avoid cmd_vel double-control with VelocityControl. -->
+      <plugin filename="gz-sim-mecanum-drive-system"
+        name="gz::sim::systems::MecanumDrive">
+        <front_left_joint>upper_left_wheel_joint</front_left_joint>
+        <front_right_joint>upper_right_wheel_joint</front_right_joint>
+        <back_left_joint>lower_left_wheel_joint</back_left_joint>
+        <back_right_joint>lower_right_wheel_joint</back_right_joint>
 
-      <wheel_separation>0.208</wheel_separation>
-      <wheelbase>0.325</wheelbase>
-      <wheel_radius>${wheel_radius}</wheel_radius>
+        <wheel_separation>0.208</wheel_separation>
+        <wheelbase>0.325</wheelbase>
+        <wheel_radius>${wheel_radius}</wheel_radius>
 
-      <topic>/cmd_vel</topic>
-    </plugin>
+        <topic>/cmd_vel</topic>
+      </plugin>
+    </xacro:if>
 
     <!-- 发布每个轮子当前转动的角度和速度 -->
-    <plugin filename="ignition-gazebo-joint-state-publisher-system"
-      name="ignition::gazebo::systems::JointStatePublisher">
+    <plugin filename="gz-sim-joint-state-publisher-system"
+      name="gz::sim::systems::JointStatePublisher">
       <topic>/joint_states</topic>
     </plugin>
   </gazebo>

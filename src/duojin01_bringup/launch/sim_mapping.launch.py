@@ -3,7 +3,6 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
-from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -21,6 +20,7 @@ def generate_launch_description():
     use_rviz = LaunchConfiguration("use_rviz")
     use_foxglove = LaunchConfiguration("use_foxglove")
     rviz_config = LaunchConfiguration("rviz_config")
+    rviz_software_gl = LaunchConfiguration("rviz_software_gl")
     default_rviz_config = PathJoinSubstitution([bringup_share, "config", "rviz", "mapping.rviz"])
 
     sim_launch = IncludeLaunchDescription(
@@ -32,21 +32,14 @@ def generate_launch_description():
             "use_sim_tf": "true",
             "use_teleop": "true",
             "use_foxglove": use_foxglove,
+            "use_rviz": use_rviz,
+            "rviz_config": rviz_config,
+            "rviz_software_gl": rviz_software_gl,
         }.items(),
     )
 
     slam_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "slam.launch.py")),
-    )
-
-    rviz_node = Node(
-        package="rviz2",
-        executable="rviz2",
-        name="rviz2",
-        output="screen",
-        arguments=["-d", rviz_config],
-        parameters=[{"use_sim_time": use_sim_time_param}],
-        condition=IfCondition(use_rviz),
     )
 
     scan_rewriter = Node(
@@ -76,10 +69,13 @@ def generate_launch_description():
             SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
             DeclareLaunchArgument("use_rviz", default_value="true"),
             DeclareLaunchArgument("use_foxglove", default_value="false"),
+            DeclareLaunchArgument(
+                "rviz_software_gl",
+                default_value=EnvironmentVariable("DUOJIN01_RVIZ_SOFTWARE_GL", default_value="true"),
+            ),
             DeclareLaunchArgument("rviz_config", default_value=default_rviz_config),
             sim_launch,
             slam_launch,
             scan_rewriter,
-            rviz_node,
         ]
     )

@@ -5,6 +5,8 @@ keyboard_teleop_node:
     frame_id: ''
     speed: 0.5
     turn: 1.0
+    speed_step: 0.05
+    turn_step: 0.1
     publish_rate: 120.0
     evdev_device: ''
     grab_device: true

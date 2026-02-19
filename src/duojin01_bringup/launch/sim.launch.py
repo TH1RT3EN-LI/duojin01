@@ -12,7 +12,7 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration, PythonExpression
+from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -26,21 +26,26 @@ def generate_launch_description():
     ekf_config_path = os.path.join(bringup_share, "config", "ekf.yaml")
     bridge_cfg = os.path.join(bringup_share, "config", "ros_gz_bridge.yaml")
     foxglove_bridge_config_path = os.path.join(bringup_share, "config", "foxglove", "bridge.yaml")
+    default_rviz_config = PathJoinSubstitution([bringup_share, "config", "rviz", "navigation.rviz"])
     watchdog_share = get_package_share_directory("duojin01_safety_watchdog")
     watchdog_config_path = os.path.join(watchdog_share, "config", "safety_watchdog.yaml")
 
     description_share_parent = os.path.dirname(description_share)
     orbbec_description_share_parent = os.path.dirname(orbbec_description_share)
-    resource_path = ":".join(
-        [description_share_parent, orbbec_description_share_parent, bringup_share, "/usr/share/ignition"]
-    )
+    resource_dirs = [description_share_parent, orbbec_description_share_parent, bringup_share]
+    if os.path.isdir("/usr/share/gz"):
+        resource_dirs.append("/usr/share/gz")
+    resource_path = ":".join(resource_dirs)
 
     urdf_file = os.path.join(description_share, "urdf", "duojin01.xacro")
 
-    if shutil.which("ign"):
-        gazebo_cmd = ["ign", "gazebo"]
-    else:
-        gazebo_cmd = ["gz", "sim"]
+    if not shutil.which("gz"):
+        raise RuntimeError(
+            "Gazebo Harmonic CLI 'gz' not found in PATH. "
+            "Please use the Harmonic image/environment (e.g. duojin01:humble-harmonic)."
+        )
+    gazebo_cmd = ["gz", "sim"]
+    default_gz_partition = f"duojin01_{os.getpid()}"
 
     headless = LaunchConfiguration("headless")
     world_name = LaunchConfiguration("world_name")
@@ -50,12 +55,17 @@ def generate_launch_description():
     render_engine = LaunchConfiguration("render_engine")
     software_gl = LaunchConfiguration("software_gl")
     separate_gui = LaunchConfiguration("separate_gui")
+    gz_partition = LaunchConfiguration("gz_partition")
+    use_rviz = LaunchConfiguration("use_rviz")
+    rviz_software_gl = LaunchConfiguration("rviz_software_gl")
+    rviz_config = LaunchConfiguration("rviz_config")
 
     use_sim_tf = LaunchConfiguration("use_sim_tf")
     use_sim_camera = LaunchConfiguration("use_sim_camera")
     controller_port = LaunchConfiguration("controller_port")
     use_teleop = LaunchConfiguration("use_teleop")
     use_foxglove = LaunchConfiguration("use_foxglove")
+    base_driver_start_delay = LaunchConfiguration("base_driver_start_delay")
 
     robot_description = ParameterValue(Command(["xacro", " ", urdf_file]), value_type=str)
 
@@ -115,7 +125,9 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {
-                "use_sim_time": use_sim_time_param,
+                # Keep emulator on wall time so PTY feedback starts immediately
+                # even before /clock is bridged at launch startup.
+                "use_sim_time": False,
                 "pty_link_path": controller_port,
                 "odom_topic": "/sim/odom",
                 "cmd_vel_out_topic": "/cmd_vel_sim",
@@ -306,6 +318,10 @@ def generate_launch_description():
         ],
         remappings=[("/cmd_vel", "/cmd_vel_safe")],
     )
+    base_driver_delayed = TimerAction(
+        period=base_driver_start_delay,
+        actions=[base_driver],
+    )
 
     safety_watchdog = Node(
         package="duojin01_safety_watchdog",
@@ -335,6 +351,37 @@ def generate_launch_description():
         parameters=[foxglove_bridge_config_path, {"use_sim_time": use_sim_time_param}],
         condition=IfCondition(use_foxglove),
     )
+    rviz_soft_condition = IfCondition(
+        PythonExpression(['"', use_rviz, '" == "true" and "', rviz_software_gl, '" == "true"'])
+    )
+    rviz_hw_condition = IfCondition(
+        PythonExpression(['"', use_rviz, '" == "true" and "', rviz_software_gl, '" == "false"'])
+    )
+    rviz_node = Node(
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        output="screen",
+        arguments=["-d", rviz_config],
+        parameters=[{"use_sim_time": use_sim_time_param}],
+        additional_env={
+            "LIBGL_DRI3_DISABLE": "1",
+            "LIBGL_ALWAYS_SOFTWARE": "1",
+            "MESA_LOADER_DRIVER_OVERRIDE": "llvmpipe",
+            "QT_XCB_GL_INTEGRATION": "none",
+            "QT_OPENGL": "software",
+        },
+        condition=rviz_soft_condition,
+    )
+    rviz_node_hw = Node(
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        output="screen",
+        arguments=["-d", rviz_config],
+        parameters=[{"use_sim_time": use_sim_time_param}],
+        condition=rviz_hw_condition,
+    )
 
     spawn_robot = Node(
         package="ros_gz_sim",
@@ -356,14 +403,14 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            SetEnvironmentVariable(
-                name="IGN_GAZEBO_RESOURCE_PATH",
-                value=resource_path,
-            ),
             SetEnvironmentVariable(name="GZ_SIM_RESOURCE_PATH", value=resource_path),
             DeclareLaunchArgument("world", default_value=world_path),
             DeclareLaunchArgument("world_name", default_value="empty_world"),
             DeclareLaunchArgument("headless", default_value="false"),
+            DeclareLaunchArgument(
+                "gz_partition",
+                default_value=EnvironmentVariable("DUOJIN01_GZ_PARTITION", default_value=default_gz_partition),
+            ),
             DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="true")),
             DeclareLaunchArgument(
                 "use_sim_camera",
@@ -376,16 +423,25 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "render_engine",
-                default_value=EnvironmentVariable("IGN_RENDER_ENGINE", default_value="ogre"),
+                default_value=EnvironmentVariable("GZ_RENDER_ENGINE", default_value="ogre2"),
             ),
             DeclareLaunchArgument(
                 "software_gl",
                 default_value=PythonExpression(['"true" if "', sim_profile, '" == "cpu" else "false"']),
             ),
             DeclareLaunchArgument("separate_gui", default_value="true"),
+            DeclareLaunchArgument("use_rviz", default_value="false"),
+            DeclareLaunchArgument(
+                "rviz_software_gl",
+                default_value=EnvironmentVariable("DUOJIN01_RVIZ_SOFTWARE_GL", default_value="true"),
+            ),
+            DeclareLaunchArgument("rviz_config", default_value=default_rviz_config),
             SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
             SetEnvironmentVariable("DUOJIN01_SIM_CAMERA_ENABLED", use_sim_camera),
             SetEnvironmentVariable("DUOJIN01_SIM_PROFILE", sim_profile),
+            SetEnvironmentVariable("DUOJIN01_GZ_PARTITION", gz_partition),
+            SetEnvironmentVariable("GZ_PARTITION", gz_partition),
+            SetEnvironmentVariable("DUOJIN01_RVIZ_SOFTWARE_GL", rviz_software_gl),
             SetEnvironmentVariable("LIBGL_DRI3_DISABLE", "1"),
             SetEnvironmentVariable("LIBGL_ALWAYS_SOFTWARE", "1", condition=IfCondition(software_gl)),
             SetEnvironmentVariable("MESA_LOADER_DRIVER_OVERRIDE", "llvmpipe", condition=IfCondition(software_gl)),
@@ -398,6 +454,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument("use_teleop", default_value="true"),
             DeclareLaunchArgument("use_foxglove", default_value="false"),
+            DeclareLaunchArgument("base_driver_start_delay", default_value="2.0"),
             ExecuteProcess(
                 cmd=gazebo_cmd
                 + [
@@ -453,11 +510,13 @@ def generate_launch_description():
             camera_color_optical_frame_tf,
             camera_ir_optical_frame_tf,
             twist_mux_node,
-            base_driver,
+            base_driver_delayed,
             safety_watchdog,
             ekf_node,
             joy_teleop_launch,
             spawn_robot_delayed,
             foxglove_bridge,
+            rviz_node,
+            rviz_node_hw,
         ]
     )

@@ -18,10 +18,12 @@ class ScanFrameRewriter(Node):
         self.declare_parameter('input_topic', '/scan_raw')
         self.declare_parameter('output_topic', '/scan')
         self.declare_parameter('output_frame_id', 'laser')
+        self.declare_parameter('restamp_with_now', True)
 
         input_topic = str(self.get_parameter('input_topic').value)
         output_topic = str(self.get_parameter('output_topic').value)
         self._output_frame_id = str(self.get_parameter('output_frame_id').value)
+        self._restamp_with_now = bool(self.get_parameter('restamp_with_now').value)
 
         sub_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -46,6 +48,8 @@ class ScanFrameRewriter(Node):
 
     def cb(self, msg):
         msg.header.frame_id = self._output_frame_id
+        if self._restamp_with_now:
+            msg.header.stamp = self.get_clock().now().to_msg()
         self.pub.publish(msg)
 
 

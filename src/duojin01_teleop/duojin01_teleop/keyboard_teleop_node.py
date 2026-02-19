@@ -22,8 +22,8 @@ A/D : 左移/右移 (线速度 y)
 Q/E : 左转/右转 (角速度 z)
 X   : 紧急停止
 
-I/K : 线速度 增加/减少 10%
-O/L : 角速度 增加/减少 10%
+I/K : 线速度 增加/减少（固定步长）
+O/L : 角速度 增加/减少（固定步长）
 
 无按键输入时自动停止（速度归零）
 方向键可同时组合使用
@@ -42,10 +42,10 @@ MOVE_BINDINGS = {
 }
 
 SPEED_BINDINGS = {
-    'i': (1.1, 1.0),
-    'k': (0.9, 1.0),
-    'o': (1.0, 1.1),
-    'l': (1.0, 0.9),
+    'i': (1.0, 0.0),
+    'k': (-1.0, 0.0),
+    'o': (0.0, 1.0),
+    'l': (0.0, -1.0),
 }
 
 EV_KEY = 0x01
@@ -71,15 +71,17 @@ EVIOCGRAB = 0x40044590
 
 
 def vels(speed, turn):
-    return 'currently:\tspeed %.2f\tturn %.2f ' % (speed, turn)
+    return '当前速度:\t线速度 %.2f m/s\t角速度 %.2f rad/s' % (speed, turn)
 
 
 class SharedState:
-    def __init__(self, speed, turn):
+    def __init__(self, speed, turn, speed_step, turn_step):
         self.lock = threading.Lock()
         self.pressed_move_keys = set()
         self.speed = float(speed)
         self.turn = float(turn)
+        self.speed_step = max(0.0, float(speed_step))
+        self.turn_step = max(0.0, float(turn_step))
 
     def update_move_key(self, key, pressed):
         if key not in MOVE_BINDINGS:
@@ -100,10 +102,10 @@ class SharedState:
         if key not in SPEED_BINDINGS:
             return
 
-        linear_scale, angular_scale = SPEED_BINDINGS[key]
+        linear_step_direction, angular_step_direction = SPEED_BINDINGS[key]
         with self.lock:
-            self.speed *= linear_scale
-            self.turn *= angular_scale
+            self.speed = max(0.0, self.speed + linear_step_direction * self.speed_step)
+            self.turn = max(0.0, self.turn + angular_step_direction * self.turn_step)
             speed = self.speed
             turn = self.turn
         print(vels(speed, turn))
@@ -314,6 +316,8 @@ def main():
     frame_id = node.declare_parameter('frame_id', '', read_only_descriptor).value
     speed = node.declare_parameter('speed', 0.5, read_only_descriptor).value
     turn = node.declare_parameter('turn', 1.0, read_only_descriptor).value
+    speed_step = node.declare_parameter('speed_step', 0.05, read_only_descriptor).value
+    turn_step = node.declare_parameter('turn_step', 0.1, read_only_descriptor).value
     cmd_vel_topic = node.declare_parameter('cmd_vel_topic', '/cmd_vel', read_only_descriptor).value
     publish_rate = node.declare_parameter('publish_rate', 100.0, read_only_descriptor).value
     evdev_device = node.declare_parameter('evdev_device', '', read_only_descriptor).value
@@ -349,7 +353,7 @@ def main():
     spinner.start()
 
     stop_event = threading.Event()
-    state = SharedState(speed=speed, turn=turn)
+    state = SharedState(speed=speed, turn=turn, speed_step=speed_step, turn_step=turn_step)
 
     publisher_thread = CmdVelPublisherThread(
         node=node,
@@ -372,6 +376,7 @@ def main():
 
     try:
         print(MSG)
+        print('调速步长:\t线速度 %.2f m/s\t角速度 %.2f rad/s' % (speed_step, turn_step))
         print(vels(speed, turn))
         publisher_thread.start()
         keyboard_thread.start()

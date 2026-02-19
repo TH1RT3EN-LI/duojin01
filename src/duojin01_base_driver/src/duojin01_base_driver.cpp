@@ -104,6 +104,7 @@ public:
 
         last_time_ = this->now();
         last_frame_time_ = this->now();
+        last_frame_steady_time_ = std::chrono::steady_clock::now();
 
         RCLCPP_INFO(this->get_logger(), "duojin01_base_driver node started");
 
@@ -328,7 +329,8 @@ private:
         // 2) 端口看似打开但长时间无数据（静默故障）
         if (serial_ && serial_->is_open())
         {
-            const double since_last = (this->now() - last_frame_time_).seconds();
+            const double since_last = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - last_frame_steady_time_).count();
             if (since_last > 0.5) // 200 Hz 主循环 → 0.5 s 无帧 = 尽快重连
             {
                 handle_serial_error(
@@ -419,6 +421,7 @@ private:
         }
         frame_ready_.store(false, std::memory_order_release);
         last_frame_time_ = this->now();
+        last_frame_steady_time_ = std::chrono::steady_clock::now();
         return true;
     }
 
@@ -721,6 +724,7 @@ private:
 
             start_serial_receive();
             last_frame_time_ = this->now();
+            last_frame_steady_time_ = std::chrono::steady_clock::now();
             rx_count_ = 0;
             serial_reconnecting_ = false;
             if (serial_retry_timer_)
@@ -771,6 +775,7 @@ private:
     // -------- timing --------
     rclcpp::Time last_time_;
     rclcpp::Time last_frame_time_; 
+    std::chrono::steady_clock::time_point last_frame_steady_time_;
 
     // -------- serial --------
     drivers::common::IoContext io_ctx_;
