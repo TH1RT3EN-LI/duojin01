@@ -39,11 +39,6 @@ def generate_launch_description():
 
     urdf_file = os.path.join(description_share, "urdf", "duojin01.xacro")
 
-    if not shutil.which("gz"):
-        raise RuntimeError(
-            "Gazebo Harmonic CLI 'gz' not found in PATH. "
-            "Please use the Harmonic image/environment (e.g. duojin01:humble-harmonic)."
-        )
     gazebo_cmd = ["gz", "sim"]
     default_gz_partition = f"duojin01_{os.getpid()}"
 
@@ -125,8 +120,6 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {
-                # Keep emulator on wall time so PTY feedback starts immediately
-                # even before /clock is bridged at launch startup.
                 "use_sim_time": False,
                 "pty_link_path": controller_port,
                 "odom_topic": "/sim/odom",
