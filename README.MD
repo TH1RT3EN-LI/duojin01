@@ -15,11 +15,13 @@
 ## 0. 运行前准备
 
 ```bash
+# 加载环境 1
+source /opt/ros/humble/setup.bash
+
 # 构建
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
-# 加载环境
-source /opt/ros/humble/setup.bash
+# 加载环境 2 （接下来的操作在执行了下面这个命令的终端内进行）
 source install/setup.bash
 ```
 
@@ -29,7 +31,7 @@ source install/setup.bash
 
 ### 1.1 真机
 
-底盘联调（仅底盘）：
+底盘联调（仅启动底盘，可以遥操，但没有其他用）：
 
 ```bash
 ros2 launch duojin01_bringup base.launch.py use_lidar:=false use_foxglove:=true
@@ -41,17 +43,23 @@ ros2 launch duojin01_bringup base.launch.py use_lidar:=false use_foxglove:=true
 ros2 launch duojin01_bringup mapping.launch.py
 ```
 
-导航（已有地图）：
+键盘操作（见下文说明 ## 4）：
+```bash
+ros2 run duojin01_teleop keyboard_teleop_node
+```
+  
+保存地图（会有successfu、done的提示）：
+
+```bash
+ros2 launch duojin01_bringup save_map.launch.py
+```
+
+导航（已有地图，默认加载最新的）：
 
 ```bash
 ros2 launch duojin01_bringup navigation.launch.py
 ```
 
-保存地图：
-
-```bash
-ros2 launch duojin01_bringup save_map.launch.py
-```
 
 ### 1.2 仿真
 
@@ -125,38 +133,20 @@ ros2 launch duojin01_bringup sim.launch.py sim_profile:=gpu
 # CPU 档（兜底）
 ros2 launch duojin01_bringup sim.launch.py sim_profile:=cpu
 
-# 无界面
+# 无界面（正常情况下推荐）
 ros2 launch duojin01_bringup sim.launch.py headless:=true
 ```
 
 
 ---
 
-## 4. 常见问题排查
+## 4. 键盘说明
 
-`/scan` 有 topic，但 ranges 全 0：
-
-1. 确认当前是 `sim_profile:=gpu`。
-2. 确认没有手动改成 `render_engine:=ogre2` 或 `software_gl:=true`。
-3. 排查时可以显式指定：
-
-```bash
-ros2 launch duojin01_bringup sim_mapping.launch.py \
-  sim_profile:=gpu \
-  render_engine:=ogre \
-  software_gl:=false
-```
-
-仿真保存地图失败：
-
-- 确认使用 `use_sim_time:=true`。
-- 确认 `/map` 已稳定发布后再执行保存。
-
-键盘控制没反应：
-
-- 键盘节点是检测按键状态，不是终端字符输入。
-- 蓝牙键盘在部分环境下可能不兼容，优先用手柄链路。
-- 键盘节点可单独运行：
+- 键盘的node启动后会在终端打印有关信息
+- 速度调节可能暂时无效，不建议使用
+- 键盘节点是检测按键状态，不是终端字符输入，是故窗口不一定要聚焦在node的终端、启动键盘操作后可能不便于进行其他造作
+- 结束时不必聚焦node的终端，直接ctrl + c就结束了
+- 蓝牙键盘在部分环境下可能不兼容，无法正常操作
 
 ```bash
 ros2 run duojin01_teleop keyboard_teleop_node
@@ -178,6 +168,7 @@ ros2 launch duojin01_bringup joy_teleop.launch.py
 - `LB(4)`：慢速通道（`/cmd_vel_slow`）
 - `A(0)`：急停通道（`/cmd_vel_estop`）
 - `Y(3)` 长按 2 秒：触发保存地图
+- 左右遥感自行体会含义，后续补充操作说明
 
 ---
 
