@@ -22,6 +22,6 @@ setup(
     maintainer='litianshun',
     maintainer_email='litianshun.cn@gmail.com',
     description='duojin01 robot description',
-    license='Proprietary',
+    license='GPL-3.0-only',
     entry_points={'console_scripts': []},
 )

@@ -21,7 +21,7 @@ setup(
     maintainer='litianshun',
     maintainer_email='litianshun.cn@gmail.com',
     description='安全',
-    license='Proprietary',
+    license='GPL-3.0-only',
     entry_points={
         'console_scripts': [
             'safety_watchdog_node = duojin01_safety_watchdog.safety_watchdog_node:main',

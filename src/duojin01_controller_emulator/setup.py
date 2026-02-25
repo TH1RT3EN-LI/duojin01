@@ -15,7 +15,7 @@ setup(
     maintainer="litianshun",
     maintainer_email="litianshun.cn@gmail.com",
     description="通过PTY模拟 duojin01 底盘控制逻辑，实现与硬件驱动等效的仿真。",
-    license='Proprietary',
+    license='GPL-3.0-only',
     entry_points={
         "console_scripts": [
             "duojin01_controller_emulator_node = duojin01_controller_emulator.controller_emulator_node:main",

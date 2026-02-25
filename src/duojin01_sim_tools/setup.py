@@ -16,7 +16,7 @@ setup(
     maintainer="litianshun.cn@gmail.com",
     maintainer_email="litianshun.cn@gmail.com",
     description="用于实现仿真的数个小工具node。",
-    license='Proprietary',
+    license='GPL-3.0-only',
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [

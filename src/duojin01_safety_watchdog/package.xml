@@ -5,7 +5,7 @@
   <version>0.1.0</version>
   <description>安全</description>
   <maintainer email="litianshun.cn@gmail.com">litianshun</maintainer>
-  <license>Proprietary</license>
+  <license>GPL-3.0-only</license>
 
   <depend>rclpy</depend>
 

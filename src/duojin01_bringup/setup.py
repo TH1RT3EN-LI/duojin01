@@ -35,7 +35,7 @@ setup(
     maintainer='litianshun',
     maintainer_email='litianshun.cn@gmail.com',
     description='启动车辆的有关软硬件',
-    license='Proprietary',
+    license='GPL-3.0-only',
     entry_points={
         'console_scripts': [
 

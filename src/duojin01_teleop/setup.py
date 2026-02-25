@@ -21,7 +21,7 @@ setup(
     maintainer='litianshun',
     maintainer_email='litianshun.cn@gmail.com',
     description='TODO: Package description',
-    license='TODO: License declaration',
+    license='GPL-3.0-only',
     extras_require={
         'test': [
             'pytest',

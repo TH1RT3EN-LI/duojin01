@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>用于实现仿真的数个小工具node。</description>
   <maintainer email="litianshun.cn@gmail.com">litianshun</maintainer>
-  <license>Apache-2.0</license>
+  <license>GPL-3.0-only</license>
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>

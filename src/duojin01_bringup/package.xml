@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>启动车辆的有关软硬件</description>
   <maintainer email="litianshun.cn@gmail.com">litianshun</maintainer>
-  <license>Proprietary</license>
+  <license>GPL-3.0-only</license>
 
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>

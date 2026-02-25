@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>duojin01 robot URDF 模型描述</description>
   <maintainer email="litianshun.cn@gmail.com">litianshun</maintainer>
-  <license>Proprietary</license>
+  <license>GPL-3.0-only</license>
 
   <exec_depend>xacro</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>

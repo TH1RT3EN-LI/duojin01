@@ -3,12 +3,20 @@
 
   # Duojin01 UGV ROS2
 
-  [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](https://opensource.org/licenses/alphabetical)
+  [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
   [![ROS2: Humble](https://img.shields.io/badge/ROS2-Humble-blue.svg)](https://docs.ros.org/en/humble/)
   [![Gazebo: Harmonic](https://img.shields.io/badge/Gazebo-Harmonic-orange.svg)](https://gazebosim.org/)
 
   **夺锦01 麦克纳姆轮 UGV 功能框架**
 </div>
+
+---
+
+## License
+
+本仓库中 `duojin01_*` 自研包采用 GNU General Public License v3.0（`GPL-3.0-only`）许可，完整文本见仓库根目录 `LICENSE`。
+
+`src/OrbbecSDK` 与 `src/lslidar_driver` 为第三方代码，继续遵循其目录内声明的原始许可证。
 
 ---
 
