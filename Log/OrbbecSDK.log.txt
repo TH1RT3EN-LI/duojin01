@@ -1,8 +1,0 @@
-[02/24 03:50:36.476423][debug][3713][Context.cpp:30] Context creating, work_dir=/ws
-[02/24 03:50:36.476489][debug][3713][Context.cpp:49] Config file version=1.1
-[02/24 03:50:36.476516][debug][3713][FrameBufferManager.cpp:23] Max global frame buffer size updated! size=2048.000MB
-[02/24 03:50:36.476522][info][3713][Context.cpp:68] Context created with config: /ws/install/orbbec_camera/share/orbbec_camera/config/OrbbecSDKConfig_v1.0.xml
-[02/24 03:50:36.476547][info][3713][Context.cpp:73] Work directory=/ws, SDK version=v1.10.35-20260128-fa838f5
-[02/24 03:50:36.476557][debug][3713][DeviceManager.cpp:30] DeviceManager init ...
-[02/24 03:50:36.476561][info][3713][LinuxPal.cpp:32] createObPal: create LinuxPal!
-[02/24 03:50:36.476697][error][3713][ContextLibusb.cpp:22] libusb_init failed
