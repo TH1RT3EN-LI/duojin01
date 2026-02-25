@@ -16,7 +16,7 @@
 
 本仓库中 `duojin01_*` 自研包采用 GNU General Public License v3.0（`GPL-3.0-only`）许可，完整文本见仓库根目录 `LICENSE`。
 
-`src/OrbbecSDK` 与 `src/lslidar_driver` 为第三方代码，继续遵循其目录内声明的原始许可证。
+`src/orbbec_sdk` 与 `src/lslidar_driver` 为第三方代码，继续遵循其目录内声明的原始许可证。
 
 ---
 

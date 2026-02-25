@@ -35,7 +35,7 @@ def _resolve_default_map_yaml(bringup_share: str) -> str:
         return numeric_maps[-1][1]
     if newest_map is not None:
         return newest_map
-    return os.path.join(maps_dir, "my_map.yaml")
+    return os.path.join(maps_dir, "default.yaml")
 
 
 def generate_launch_description():
