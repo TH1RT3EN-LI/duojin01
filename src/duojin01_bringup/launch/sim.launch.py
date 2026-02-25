@@ -37,7 +37,7 @@ def generate_launch_description():
         resource_dirs.append("/usr/share/gz")
     resource_path = ":".join(resource_dirs)
 
-    urdf_file = os.path.join(description_share, "urdf", "duojin01.xacro")
+    urdf_file = os.path.join(description_share, "urdf", "duojin01_sim.xacro")
 
     gazebo_cmd = ["gz", "sim"]
     default_gz_partition = f"duojin01_{os.getpid()}"
@@ -447,7 +447,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument("use_teleop", default_value="true"),
             DeclareLaunchArgument("use_foxglove", default_value="false"),
-            DeclareLaunchArgument("base_driver_start_delay", default_value="2.0"),
+            DeclareLaunchArgument("base_driver_start_delay", default_value="6.0"),
             ExecuteProcess(
                 cmd=gazebo_cmd
                 + [

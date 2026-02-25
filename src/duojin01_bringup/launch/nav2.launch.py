@@ -49,6 +49,7 @@ def generate_launch_description():
     params_file = LaunchConfiguration('params_file')
     map_yaml = LaunchConfiguration('map')
     autostart = LaunchConfiguration('autostart')
+    log_level = LaunchConfiguration('log_level')
     rviz_config = LaunchConfiguration('rviz_config')
     use_rviz = LaunchConfiguration('use_rviz')
     default_rviz_config = PathJoinSubstitution([bringup_share, "config", "rviz", "navigation.rviz"])
@@ -60,7 +61,8 @@ def generate_launch_description():
                 'map': map_yaml,
                 'use_sim_time': use_sim_time,
                 'params_file': params_file,
-                'autostart': autostart
+                'autostart': autostart,
+                'log_level': log_level,
             }.items()
         )
 
@@ -90,6 +92,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value=EnvironmentVariable('USE_SIM_TIME', default_value='false')),
         DeclareLaunchArgument('autostart', default_value='true'),
+        DeclareLaunchArgument('log_level', default_value='info'),
         DeclareLaunchArgument('use_rviz', default_value='true'),
         DeclareLaunchArgument(
             'params_file',
