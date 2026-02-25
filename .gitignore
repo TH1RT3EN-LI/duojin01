@@ -5,6 +5,4 @@ scripts/
 core.*
 Dockerfile
 source.sh
-Log/
-0
 .git*
