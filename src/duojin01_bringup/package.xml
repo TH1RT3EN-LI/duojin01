@@ -14,6 +14,7 @@
 
   <exec_depend>duojin01_description</exec_depend>
   <exec_depend>duojin01_base_driver</exec_depend>
+  <exec_depend>duojin01_slam_tools</exec_depend>
   <exec_depend>duojin01_sim_tools</exec_depend>
   <exec_depend>duojin01_controller_emulator</exec_depend>
   <exec_depend>duojin01_teleop</exec_depend>

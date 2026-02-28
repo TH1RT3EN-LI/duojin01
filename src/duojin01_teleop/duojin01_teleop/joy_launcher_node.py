@@ -1,3 +1,5 @@
+import os
+import signal
 import subprocess
 import time
 from typing import Dict, Set
@@ -201,11 +203,11 @@ class JoyLauncherNode(Node):
 
         if btn in self.running_procs and self.running_procs[btn].poll() is None:
             self.get_logger().info(f'Killing previous process for button {btn}')
-            self.running_procs[btn].terminate()
+            self._stop_process_tree(btn, self.running_procs[btn])
 
         self.running_procs[btn] = subprocess.Popen(
-            cmd,
-            shell=True,
+            ["bash", "-lc", cmd],
+            start_new_session=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -229,6 +231,35 @@ class JoyLauncherNode(Node):
                 )
 
             self.running_procs.pop(btn, None)
+
+    def _stop_process_tree(self, btn, proc):
+        if proc.poll() is not None:
+            return
+
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
+
+        try:
+            proc.wait(timeout=1.0)
+            return
+        except subprocess.TimeoutExpired:
+            self.get_logger().warning(
+                f'Process group for button {btn} did not exit after SIGTERM, sending SIGKILL'
+            )
+
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            return
+
+        try:
+            proc.wait(timeout=1.0)
+        except subprocess.TimeoutExpired:
+            self.get_logger().warning(
+                f'Process group for button {btn} still running after SIGKILL'
+            )
 
     def _publish_rumble(self, intensity, duration_sec):
         if not rclpy.ok():
@@ -263,11 +294,7 @@ class JoyLauncherNode(Node):
         for btn, proc in list(self.running_procs.items()):
             if proc.poll() is None:
                 self.get_logger().info(f"Stopping process for button {btn}")
-                proc.terminate()
-                try:
-                    proc.wait(timeout=1.0)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
+                self._stop_process_tree(btn, proc)
         self._publish_rumble(0.0, 0.0)
         return super().destroy_node()
 

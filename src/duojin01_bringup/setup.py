@@ -37,8 +37,6 @@ setup(
     description='启动车辆的有关软硬件',
     license='GPL-3.0-only',
     entry_points={
-        'console_scripts': [
-
-        ],
+        'console_scripts': [],
     },
 )

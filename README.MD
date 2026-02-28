@@ -33,6 +33,11 @@ colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 ```
 
+可能会需要环境隔离：
+
+- 真机与仿真建议使用不同的 `ROS_DOMAIN_ID`，避免 graph 串台。
+- 单机本地调试可选 `export ROS_LOCALHOST_ONLY=1`，需要远程 RViz / Foxglove / 多机互通时保持 `ROS_LOCALHOST_ONLY=0`。
+
 ---
 
 ## 1. 常用命令（先看这里）
@@ -61,6 +66,8 @@ ros2 run duojin01_teleop keyboard_teleop_node
 ```bash
 ros2 launch duojin01_bringup save_map.launch.py
 ```
+
+保存依赖 `slam_toolbox` 提供的 `/slam_toolbox/save_map` 服务，请在 `mapping.launch.py` / `sim_mapping.launch.py` / `slam.launch.py` 运行期间执行。
 
 导航（已有地图，默认加载最新的）：
 
@@ -108,6 +115,8 @@ ros2 launch duojin01_bringup sim_navigation.launch.py sim_profile:=gpu
 ros2 launch duojin01_bringup save_map.launch.py use_sim_time:=true
 ```
 
+同样依赖 `slam_toolbox` 的 `/slam_toolbox/save_map` 服务，请在 `sim_mapping.launch.py` 或 `slam.launch.py` 运行期间执行。
+
 ---
 
 ## 2. Launch 文件说明（duojin01_bringup）
@@ -120,7 +129,7 @@ ros2 launch duojin01_bringup save_map.launch.py use_sim_time:=true
 - `nav2.launch.py`：只启动 Nav2（可选 RViz）。
 - `slam.launch.py`：只启动 `slam_toolbox`。
 - `joy_teleop.launch.py`：手柄链路。
-- `save_map.launch.py`：等待 `/map` 后调用 `map_saver_cli`。
+- `save_map.launch.py`：等待 `/slam_toolbox/save_map` 服务后调用 `slam_toolbox` 的保存接口。
 
 ### 2.2 仿真相关
 
@@ -176,6 +185,7 @@ ros2 launch duojin01_bringup joy_teleop.launch.py
 - `LB(4)`：慢速通道（`/cmd_vel_slow`）
 - `A(0)`：急停通道（`/cmd_vel_estop`）
 - `Y(3)` 长按 2 秒：触发保存地图
+- 重复触发保存会中止前一次保存请求，并回收整组子进程，避免遗留孤儿进程
 - 左右遥感自行体会含义，后续补充操作说明
 
 ---
@@ -194,3 +204,17 @@ ros2 launch duojin01_bringup joy_teleop.launch.py
 - `sim_navigation.launch.py`：手柄链路固定关闭
 - `use_sim_camera`：仅仿真有效，默认 `false`，可按需开启深度相机
 - `use_foxglove`：`base` / `mapping` / `navigation` / `sim*` 可开关；`sim*` 默认 `false`
+
+---
+
+## 7. 排障
+
+如果遇到 `ros2 daemon` 状态异常、节点发现串台，或 `/dev/shm` 里残留 `fastrtps_*` 共享内存，可先停掉所有 ROS 2 进程，再执行：
+
+```bash
+ros2 daemon stop || true
+fastdds shm clean || true
+rm -f /dev/shm/fastrtps_* /dev/shm/fastdds_* /dev/shm/sem.fastrtps_* /dev/shm/sem.fastdds_*
+```
+
+这些命令属于运维补救手段，不是正常保存地图流程的一部分。
