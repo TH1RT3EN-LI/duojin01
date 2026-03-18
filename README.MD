@@ -23,6 +23,12 @@
 ## 0. 运行前准备
 
 ```bash
+# 额外依赖安装
+pip install pupil-apriltags pyyaml
+sudo apt install ros-humble-asio-cmake-module
+# 如果colcon build后还有其他缺失依赖，也可以用 rosdep 一次性解决：
+rosdep install --from-paths src --ignore-src -r -y
+
 # 加载环境 1
 source /opt/ros/humble/setup.bash
 
@@ -75,6 +81,66 @@ ros2 launch duojin01_bringup save_map.launch.py
 ros2 launch duojin01_bringup navigation.launch.py
 ```
 
+摄像头运行(默认/dev/video0 分辨率 640x480)
+```bash
+ros2 run duojin01_camera usb_camera_node
+```
+
+摄像头运行(指定参数)
+```bash
+ros2 run duojin01_camera usb_camera_node --ros-args \
+  -p device_id:=0 -p width:=1280 -p height:=720 -p fps:=30
+```
+
+摄像头运行(带标定)
+```bash
+ros2 run duojin01_camera usb_camera_node \
+  --ros-args -p device_id:=2 -p calibration_file:=~/calibration.yaml
+```
+
+任务监听
+```bash
+ros2 run duojin01_mission mission_executor \
+  --ros-args -p serial_port:=/dev/ttyUSB0 -p serial_baudrate:=115200
+```
+
+相机标定内参
+```bash
+ros2 run duojin01_camera calibrate_camera \
+  --device 2 --cols 9 --rows 6 --square 0.025 \
+  --output ~/calibration.yaml
+```
+操作：移动棋盘格到不同角度，按 SPACE 采集 20 帧，按 c 计算并保存。
+
+运行demo
+```bash
+ros2 run duojin01_mission pick_and_place_demo
+
+# 如果需要加参数可以
+ros2 run duojin01_mission pick_and_place_demo \\
+      --ros-args -p calibration_file:=~/calibration.yaml -p tag_size:=0.05
+```
+
+
+任务执行(最终)
+*请确保已经完成了摄像头内参标定，设定好了摄像头、串口USB口映射*
+终端1
+```bash
+# 编译并激活环境
+colcon build --packages-ignore orbbec_camera orbbec_camera_msgs orbbec_description && source ~/duojin01/install/setup.bash
+# 打开任务执行节点
+ros2 run duojin01_mission mission_executor     --ros-args -p serial_port:=/dev/ttyUSB0 -p serial_baudrate:=115200
+```
+终端2
+```bash
+source ~/duojin01/install/setup.bash && ros2 run duojin01_camera usb_camera_node --ros-args -p device_id:=2 -p calibration_file:=~/calibration.yaml
+```
+
+同时一个终端执行
+```bash
+# 激活环境并执行任务
+source ~/duojin01/install/setup.bash && ros2 run duojin01_mission pick_and_place_demo --ros-args -p calibration_file:=/home/shuo/calibration.yaml -p tag_size:=0.05
+```
 
 ### 1.2 仿真
 
