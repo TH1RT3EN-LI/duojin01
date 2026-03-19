@@ -1,7 +1,6 @@
 build/
 log/
 install/
-scripts/
 core.*
 Dockerfile
 source.sh
