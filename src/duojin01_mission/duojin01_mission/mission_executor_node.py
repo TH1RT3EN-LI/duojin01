@@ -73,6 +73,7 @@ class MissionExecutorNode(Node):
 
         self._navigating = False
         self._image_sub = None
+        self._capture_trigger_time = None   # 记录触发时刻，用于过滤旧帧
 
         self.get_logger().info('mission_executor_node 就绪')
 
@@ -136,6 +137,8 @@ class MissionExecutorNode(Node):
             self.get_logger().warn('摄像头已在捕获中')
             return
         self.get_logger().info('触发摄像头捕获')
+        # 记录触发时刻，只接受此时刻之后的新帧
+        self._capture_trigger_time = self.get_clock().now()
         self._image_sub = self.create_subscription(
             Image, '/camera/image_raw',
             self._on_image, 1,
@@ -143,9 +146,17 @@ class MissionExecutorNode(Node):
         )
 
     def _on_image(self, msg: Image):
+        # 过滤触发时刻前的旧帧（缓冲积压导致的延迟帧）
+        if self._capture_trigger_time is not None:
+            from rclpy.time import Time
+            frame_time = Time.from_msg(msg.header.stamp)
+            if frame_time < self._capture_trigger_time:
+                self.get_logger().debug('跳过触发前的旧帧')
+                return
         self.get_logger().info(f'图像已捕获: {msg.width}x{msg.height} {msg.encoding}')
         self.destroy_subscription(self._image_sub)
         self._image_sub = None
+        self._capture_trigger_time = None
         self.pub_image.publish(msg)
 
     # ──────────────────────────────────────────────────────────────────

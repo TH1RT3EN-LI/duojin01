@@ -34,6 +34,8 @@ class UsbCameraNode(Node):
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         self.cap.set(cv2.CAP_PROP_FPS, fps)
+        # 限制 V4L2 内部缓冲为 1 帧，避免读到积压的旧帧导致延迟
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
         if not self.cap.isOpened():
             self.get_logger().error(f'Cannot open camera device {device_id}')
