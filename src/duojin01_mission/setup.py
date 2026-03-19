@@ -25,7 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             'mission_executor = duojin01_mission.mission_executor_node:main',
-            'pick_and_place_demo = scripts.pick_and_place_demo:main',
+            'pick_demo = scripts.pick_demo:main',
+            'place_demo = scripts.place_demo:main',
         ],
     },
 )

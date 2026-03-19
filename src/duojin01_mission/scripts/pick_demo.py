@@ -214,7 +214,7 @@ class PickAndPlaceDemo(Node):
 
     def _run_mission(self):
 
-        height = 50
+        height = 185
 
         time.sleep(2.0)   # 等节点完全就绪
         self.get_logger().info('===== 任务开始 =====')
@@ -261,29 +261,36 @@ class PickAndPlaceDemo(Node):
             # 根据 best.center_u/center_v 调整机械臂坐标（此处为占位示例）
             adj_x = 0 * best.center_u + 0 * best.center_v + 10
             adj_y = 0 * best.center_u + 0 * best.center_v + 10
-            self.gcode(f'M20 G90 X{adj_x:.1f} Y{adj_y:.1f} Z{-height:.1f}')
+
+            # 3. 下降
+            if not self.gcode(f'M20 G91 Z{-height:.1f}'):
+                return
+            time.sleep(3)
+            self.gcode(f'M20 G90 X{adj_x:.1f} Y{adj_y:.1f}')
+            time.sleep(3)
+            
         
-        # 5. 吸气
-        if not self.gcode('M3 S1000'):
-            return
-        time.sleep(5)
+        # # 5. 吸气
+        # if not self.gcode('M3 S1000'):
+        #     return
+        # time.sleep(5)
 
         # # 6. 导航到放件点
         # if not self.nav_to(**PLACE_POSE):
         #     self.get_logger().error('导航到放件点失败，任务终止')
         #     return
 
-        # 7. 吹气放下
-        if not self.gcode('M3 S500'):
-            return
-        time.sleep(1)
+        # # 7. 吹气放下
+        # if not self.gcode('M3 S500'):
+        #     return
+        # time.sleep(1)
 
-        # 8. 关闭气泵
-        self.gcode('M3 S0')
-        time.sleep(1)
+        # # 8. 关闭气泵
+        # self.gcode('M3 S0')
+        # time.sleep(1)
 
-        # 11. 回零
-        self.gcode('$h')
+        # # 11. 回零
+        # self.gcode('$h')
 
         # # 12. 导航回原点
         # self.nav_to(**HOME_POSE)
