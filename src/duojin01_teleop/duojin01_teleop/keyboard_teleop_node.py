@@ -11,6 +11,8 @@ import geometry_msgs.msg
 import rcl_interfaces.msg
 import rclpy
 
+from duojin01_teleop.keyboard_teleop_core import KeyboardTeleopCore
+
 MSG = """
 当前按键布局：
    Q    W    E
@@ -25,28 +27,11 @@ X   : 紧急停止
 I/K : 线速度 增加/减少（固定步长）
 O/L : 角速度 增加/减少（固定步长）
 
-无按键输入时自动停止（速度归零）
+速度变化采用平滑加减速
 方向键可同时组合使用
 
 CTRL-C 退出
 """
-
-MOVE_BINDINGS = {
-    'w': (1.0, 0.0, 0.0, 0.0),
-    's': (-1.0, 0.0, 0.0, 0.0),
-    'a': (0.0, 1.0, 0.0, 0.0),
-    'd': (0.0, -1.0, 0.0, 0.0),
-    'q': (0.0, 0.0, 0.0, 1.0),
-    'e': (0.0, 0.0, 0.0, -1.0),
-    'x': (0.0, 0.0, 0.0, 0.0),
-}
-
-SPEED_BINDINGS = {
-    'i': (1.0, 0.0),
-    'k': (-1.0, 0.0),
-    'o': (0.0, 1.0),
-    'l': (0.0, -1.0),
-}
 
 EV_KEY = 0x01
 KEY_LEFTCTRL = 29
@@ -68,114 +53,48 @@ KEY_CODE_TO_CHAR = {
 }
 
 EVIOCGRAB = 0x40044590
+ACCEL_LIMIT_LINEAR = 2.0
+DECEL_LIMIT_LINEAR = 3.0
+ACCEL_LIMIT_ANGULAR = 6.0
+DECEL_LIMIT_ANGULAR = 8.0
+IDLE_TIMEOUT_SEC = 0.0
 
 
-def vels(speed, turn):
-    return '当前速度:\t线速度 %.2f m/s\t角速度 %.2f rad/s' % (speed, turn)
-
-
-class SharedState:
-    def __init__(self, speed, turn, speed_step, turn_step):
-        self.lock = threading.Lock()
-        self.pressed_move_keys = set()
-        self.speed = float(speed)
-        self.turn = float(turn)
-        self.speed_step = max(0.0, float(speed_step))
-        self.turn_step = max(0.0, float(turn_step))
-
-    def update_move_key(self, key, pressed):
-        if key not in MOVE_BINDINGS:
-            return
-
-        with self.lock:
-            if key == 'x':
-                if pressed:
-                    self.pressed_move_keys.clear()
-                return
-
-            if pressed:
-                self.pressed_move_keys.add(key)
-            else:
-                self.pressed_move_keys.discard(key)
-
-    def update_speed_key(self, key):
-        if key not in SPEED_BINDINGS:
-            return
-
-        linear_step_direction, angular_step_direction = SPEED_BINDINGS[key]
-        with self.lock:
-            self.speed = max(0.0, self.speed + linear_step_direction * self.speed_step)
-            self.turn = max(0.0, self.turn + angular_step_direction * self.turn_step)
-            speed = self.speed
-            turn = self.turn
-        print(vels(speed, turn))
-
-    def snapshot(self):
-        with self.lock:
-            x = 0.0
-            y = 0.0
-            z = 0.0
-            th = 0.0
-            for key in self.pressed_move_keys:
-                dx, dy, dz, dth = MOVE_BINDINGS[key]
-                x += dx
-                y += dy
-                z += dz
-                th += dth
-
-            x = max(-1.0, min(1.0, x))
-            y = max(-1.0, min(1.0, y))
-            z = max(-1.0, min(1.0, z))
-            th = max(-1.0, min(1.0, th))
-            return x, y, z, th, self.speed, self.turn
-
-    def clear_moves(self):
-        with self.lock:
-            self.pressed_move_keys.clear()
+def vels(linear_speed, angular_speed):
+    return '当前速度:\t线速度 %.2f m/s\t角速度 %.2f rad/s' % (linear_speed, angular_speed)
 
 
 class CmdVelPublisherThread(threading.Thread):
-    def __init__(self, node, publisher, twist_msg, twist, stamped, state, rate_hz, stop_event):
+    def __init__(self, node, publisher, twist_msg, twist, stamped, core, rate_hz, stop_event):
         super().__init__(daemon=True)
         self.node = node
         self.publisher = publisher
         self.twist_msg = twist_msg
         self.twist = twist
         self.stamped = stamped
-        self.state = state
+        self.core = core
         self.stop_event = stop_event
         self.period = 1.0 / rate_hz if rate_hz > 0.0 else 0.01
 
-    def publish_snapshot(self):
-        x, y, z, th, speed, turn = self.state.snapshot()
+    def _publish_command(self, command):
         if self.stamped:
             self.twist_msg.header.stamp = self.node.get_clock().now().to_msg()
 
-        self.twist.linear.x = x * speed
-        self.twist.linear.y = y * speed
-        self.twist.linear.z = z * speed
+        self.twist.linear.x = command.linear_x
+        self.twist.linear.y = command.linear_y
+        self.twist.linear.z = command.linear_z
         self.twist.angular.x = 0.0
         self.twist.angular.y = 0.0
-        self.twist.angular.z = th * turn
-        self.publisher.publish(self.twist_msg)
-
-    def publish_zero(self):
-        if self.stamped:
-            self.twist_msg.header.stamp = self.node.get_clock().now().to_msg()
-
-        self.twist.linear.x = 0.0
-        self.twist.linear.y = 0.0
-        self.twist.linear.z = 0.0
-        self.twist.angular.x = 0.0
-        self.twist.angular.y = 0.0
-        self.twist.angular.z = 0.0
+        self.twist.angular.z = command.angular_z
         self.publisher.publish(self.twist_msg)
 
     def run(self):
         while rclpy.ok() and not self.stop_event.is_set():
-            self.publish_snapshot()
+            self._publish_command(self.core.snapshot())
             self.stop_event.wait(self.period)
-        self.publish_zero()
+
+        self.core.emergency_stop()
+        self._publish_command(self.core.zero_command())
 
 
 def discover_evdev_keyboard_devices(explicit_device):
@@ -207,9 +126,10 @@ def discover_evdev_keyboard_devices(explicit_device):
 
 
 class EvdevKeyboardThread(threading.Thread):
-    def __init__(self, state, stop_event, device_paths, grab_device, poll_timeout):
+    def __init__(self, node, core, stop_event, device_paths, grab_device, poll_timeout):
         super().__init__(daemon=True)
-        self.state = state
+        self.node = node
+        self.core = core
         self.stop_event = stop_event
         self.device_paths = device_paths
         self.grab_device = bool(grab_device)
@@ -233,7 +153,7 @@ class EvdevKeyboardThread(threading.Thread):
                     try:
                         if fd is not None:
                             os.close(fd)
-                    except Exception:
+                    except OSError:
                         pass
                     continue
                 fd_to_path[fd] = path
@@ -248,6 +168,7 @@ class EvdevKeyboardThread(threading.Thread):
                 if not ready_fds:
                     continue
 
+                now = time.monotonic()
                 for fd in ready_fds:
                     try:
                         chunk = os.read(fd, event_size * 128)
@@ -282,19 +203,23 @@ class EvdevKeyboardThread(threading.Thread):
                         if key is None:
                             continue
 
-                        if key in MOVE_BINDINGS:
+                        if self.core.is_move_key(key):
                             if value == 0:
-                                self.state.update_move_key(key, pressed=False)
+                                self.core.handle_key_release(key, now)
                             elif value in (1, 2):
-                                self.state.update_move_key(key, pressed=True)
-                        elif key in SPEED_BINDINGS and value == 1:
-                            self.state.update_speed_key(key)
+                                self.core.handle_key_press(key, now)
+                        elif self.core.is_speed_key(key) and value == 1:
+                            self.core.handle_key_press(key, now)
+                            status = self.core.status()
+                            print(vels(status.linear_speed, status.angular_speed))
 
                     buffers[fd] = buffer[offset:]
                     if self.stop_event.is_set():
                         break
+        except Exception as exception:
+            self.node.get_logger().error(f'Evdev keyboard thread failed: {exception}')
         finally:
-            self.state.clear_moves()
+            self.core.clear_move_keys(time.monotonic())
             for fd in fd_to_path:
                 try:
                     if self.grab_device:
@@ -328,12 +253,12 @@ def main():
         raise Exception("'frame_id' can only be set when 'stamped' is True")
 
     if stamped:
-        TwistMsg = geometry_msgs.msg.TwistStamped
+        twist_msg_type = geometry_msgs.msg.TwistStamped
     else:
-        TwistMsg = geometry_msgs.msg.Twist
+        twist_msg_type = geometry_msgs.msg.Twist
 
-    publisher = node.create_publisher(TwistMsg, cmd_vel_topic, 10)
-    twist_msg = TwistMsg()
+    publisher = node.create_publisher(twist_msg_type, cmd_vel_topic, 10)
+    twist_msg = twist_msg_type()
     if stamped:
         twist = twist_msg.twist
         twist_msg.header.stamp = node.get_clock().now().to_msg()
@@ -353,7 +278,17 @@ def main():
     spinner.start()
 
     stop_event = threading.Event()
-    state = SharedState(speed=speed, turn=turn, speed_step=speed_step, turn_step=turn_step)
+    core = KeyboardTeleopCore(
+        linear_speed=float(speed),
+        angular_speed=float(turn),
+        speed_step=float(speed_step),
+        turn_step=float(turn_step),
+        accel_limit_linear=ACCEL_LIMIT_LINEAR,
+        decel_limit_linear=DECEL_LIMIT_LINEAR,
+        accel_limit_angular=ACCEL_LIMIT_ANGULAR,
+        decel_limit_angular=DECEL_LIMIT_ANGULAR,
+        idle_timeout_sec=IDLE_TIMEOUT_SEC,
+    )
 
     publisher_thread = CmdVelPublisherThread(
         node=node,
@@ -361,13 +296,14 @@ def main():
         twist_msg=twist_msg,
         twist=twist,
         stamped=stamped,
-        state=state,
+        core=core,
         rate_hz=float(publish_rate),
         stop_event=stop_event,
     )
 
     keyboard_thread = EvdevKeyboardThread(
-        state=state,
+        node=node,
+        core=core,
         stop_event=stop_event,
         device_paths=readable_devices,
         grab_device=grab_device,
@@ -376,8 +312,13 @@ def main():
 
     try:
         print(MSG)
-        print('调速步长:\t线速度 %.2f m/s\t角速度 %.2f rad/s' % (speed_step, turn_step))
-        print(vels(speed, turn))
+        print('平滑限制:\t线加速 %.2f m/s²\t线减速 %.2f m/s²\t角加速 %.2f rad/s²\t角减速 %.2f rad/s²' % (
+            ACCEL_LIMIT_LINEAR,
+            DECEL_LIMIT_LINEAR,
+            ACCEL_LIMIT_ANGULAR,
+            DECEL_LIMIT_ANGULAR,
+        ))
+        print(vels(float(speed), float(turn)))
         publisher_thread.start()
         keyboard_thread.start()
 
@@ -387,6 +328,7 @@ def main():
         pass
     finally:
         stop_event.set()
+        core.emergency_stop()
         if keyboard_thread.is_alive():
             keyboard_thread.join(timeout=1.0)
         if publisher_thread.is_alive():
