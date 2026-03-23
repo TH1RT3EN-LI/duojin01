@@ -8,6 +8,6 @@ keyboard_teleop_node:
     speed_step: 0.05
     turn_step: 0.1
     publish_rate: 120.0
-    evdev_device: ''
-    grab_device: true
-    evdev_poll_timeout: 0.005
+    repeat_timeout_sec: 0.75
+    read_poll_timeout: 0.02
+    tty_device_path: ''

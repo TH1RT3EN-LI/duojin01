@@ -153,3 +153,18 @@ def test_combined_keys_produce_combined_motion():
     assert command.linear_x == 1.0
     assert command.linear_y == 1.0
     assert command.active_keys == ['a', 'w']
+
+
+def test_stale_key_timeout_expires_pressed_keys():
+    core = create_core(idle_timeout_sec=0.0)
+    start_time = 100.0
+
+    assert core.handle_key_press('w', start_time) is True
+
+    active_command = core.snapshot(start_time + 0.1, stale_key_timeout_sec=0.5)
+    assert active_command.linear_x == 1.0
+    assert active_command.active_keys == ['w']
+
+    expired_command = core.snapshot(start_time + 0.7, stale_key_timeout_sec=0.5)
+    assert expired_command.linear_x == 0.0
+    assert expired_command.active_keys == []
