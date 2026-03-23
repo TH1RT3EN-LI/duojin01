@@ -3,7 +3,7 @@
 <package format="3">
   <name>duojin01_slam_tools</name>
   <version>0.0.0</version>
-  <description>SLAM 相关的运行期工具节点。</description>
+  <description>SLAM 相关的运行期工具节点</description>
   <maintainer email="litianshun.cn@gmail.com">litianshun</maintainer>
   <license>GPL-3.0-only</license>
 
