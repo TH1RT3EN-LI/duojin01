@@ -134,7 +134,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument("nav_log_level", default_value="info"),
             DeclareLaunchArgument("odom0", default_value="/odom"),
-            DeclareLaunchArgument("imu0", default_value="/imu/data"),
+            DeclareLaunchArgument("imu0", default_value="/imu"),
             DeclareLaunchArgument("map", default_value=""),
             DeclareLaunchArgument(
                 "params_file",
