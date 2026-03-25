@@ -24,9 +24,13 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'mission_executor = duojin01_mission.mission_executor_node:main',
+            'demo = scripts.demo:main',
+            'grab_calibration_demo = scripts.grab_calibration_demo.:main',
+            'nav_demo = scripts.nav_demo:main',
             'pick_demo = scripts.pick_demo:main',
             'place_demo = scripts.place_demo:main',
+            
+
         ],
     },
 )

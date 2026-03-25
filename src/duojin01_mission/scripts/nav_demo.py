@@ -34,7 +34,7 @@ from duojin01_msgs.msg import TargetInfo
 
 
 # ── 任务参数（根据实际环境修改）──────────────────────────────────────────
-
+NAV_POSE  = {'x': 1.0, 'y': 0.0, 'yaw': 3.14/2}   # 导航点（map 坐标系）
 
 DETECTION_CONFIDENCE_THRESHOLD = 0.8  # 置信度低于该值的检测结果直接丢弃
 # ──────────────────────────────────────────────────────────────────────────
@@ -226,25 +226,13 @@ class PickAndPlaceDemo(Node):
 
     def _run_mission(self):
 
-        height = 170
-        adj_x = 0
-        adj_y = 20
+        time.sleep(2.0)   # 等节点完全就绪
+        self.get_logger().info('===== 任务开始 =====')
 
-        # 移动到安全位置
-        self.gcode(f'M20 G90 X{adj_x:.1f} Y{adj_y:.1f} Z{-height:.1f}')
-        time.sleep(3)
-
-        # 吹气放下
-        if not self.gcode('M3 S500'):
+        # 导航到指定地点
+        if not self.nav_to(**NAV_POSE):
+            self.get_logger().error('导航到放件点失败，任务终止')
             return
-        time.sleep(1)
-
-        # 关闭气泵
-        self.gcode('M3 S0')
-        time.sleep(1)
-
-        # 回零
-        self.gcode('$h')
 
         self.get_logger().info('===== 任务完成 =====')
         rclpy.shutdown()
