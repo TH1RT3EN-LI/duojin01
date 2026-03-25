@@ -243,8 +243,8 @@ class PickAndPlaceDemo(Node):
                 f'[demo] 中心点像素坐标({best.center_u} , {best.center_v}\n)'
             )
             # 根据 best.center_u/center_v 调整机械臂坐标（此处为占位示例）
-            adj_x = 0 * best.center_u + 0 * best.center_v + 0
-            adj_y = 0 * best.center_u + 0 * best.center_v + 0
+            adj_x = 0
+            adj_y = 0
 
             # 下降
             if not self.gcode(f'M20 G91 Z{-height:.1f}'):
