@@ -228,6 +228,7 @@ ros2 launch duojin01_bringup sim.launch.py headless:=true
 - 键盘节点采用 `tty` 模式，从当前交互终端读取按键字符
 - 需要在交互式终端中运行，不依赖 `/dev/input/event*` 设备权限
 - 按键松开通过键盘重复超时推断，长按方向键可持续运动
+- 若单击手感偏“肉”，可适当减小 `repeat_timeout_sec`；若长按会断续，则说明它小于系统键盘重复延迟
 
 ```bash
 ros2 run duojin01_teleop keyboard_teleop_node

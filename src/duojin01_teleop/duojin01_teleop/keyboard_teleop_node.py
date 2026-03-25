@@ -37,6 +37,8 @@ DECEL_LIMIT_LINEAR = 3.0
 ACCEL_LIMIT_ANGULAR = 6.0
 DECEL_LIMIT_ANGULAR = 8.0
 IDLE_TIMEOUT_SEC = 0.0
+DEFAULT_REPEAT_TIMEOUT_SEC = 0.50
+DEFAULT_READ_POLL_TIMEOUT_SEC = 0.02
 
 
 def vels(linear_speed, angular_speed):
@@ -186,14 +188,22 @@ def main():
     read_only_descriptor = rcl_interfaces.msg.ParameterDescriptor(read_only=True)
     stamped = node.declare_parameter('stamped', False, read_only_descriptor).value
     frame_id = node.declare_parameter('frame_id', '', read_only_descriptor).value
-    speed = node.declare_parameter('speed', 0.5, read_only_descriptor).value
-    turn = node.declare_parameter('turn', 1.0, read_only_descriptor).value
+    speed = node.declare_parameter('speed', 0.25, read_only_descriptor).value
+    turn = node.declare_parameter('turn', 0.5, read_only_descriptor).value
     speed_step = node.declare_parameter('speed_step', 0.05, read_only_descriptor).value
     turn_step = node.declare_parameter('turn_step', 0.1, read_only_descriptor).value
     cmd_vel_topic = node.declare_parameter('cmd_vel_topic', '/cmd_vel', read_only_descriptor).value
     publish_rate = node.declare_parameter('publish_rate', 100.0, read_only_descriptor).value
-    repeat_timeout_sec = node.declare_parameter('repeat_timeout_sec', 0.75, read_only_descriptor).value
-    read_poll_timeout = node.declare_parameter('read_poll_timeout', 0.02, read_only_descriptor).value
+    repeat_timeout_sec = node.declare_parameter(
+        'repeat_timeout_sec',
+        DEFAULT_REPEAT_TIMEOUT_SEC,
+        read_only_descriptor,
+    ).value
+    read_poll_timeout = node.declare_parameter(
+        'read_poll_timeout',
+        DEFAULT_READ_POLL_TIMEOUT_SEC,
+        read_only_descriptor,
+    ).value
     tty_device_path = node.declare_parameter('tty_device_path', '', read_only_descriptor).value
 
     if not stamped and frame_id:
