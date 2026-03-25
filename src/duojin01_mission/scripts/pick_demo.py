@@ -34,13 +34,8 @@ from duojin01_msgs.msg import TargetInfo
 
 
 # ── 任务参数（根据实际环境修改）──────────────────────────────────────────
-PICK_POSE  = {'x': 1.5, 'y': 0.0, 'yaw': 0.0}   # 取件点（map 坐标系）
-PLACE_POSE = {'x': 3.0, 'y': 1.0, 'yaw': 0.0}   # 放件点（map 坐标系）
-HOME_POSE  = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}   # 原点
 
-ARM_PICK_POS  = (150.0,  0.0, 80.0)   # 机械臂取件坐标 (X, Y, Z) mm
-ARM_PLACE_POS = (150.0,  0.0, 80.0)   # 机械臂放件坐标 (X, Y, Z) mm
-ARM_LIFT_Z    = -50.0                   # 提起高度 mm
+
 # ──────────────────────────────────────────────────────────────────────────
 
 
@@ -215,26 +210,18 @@ class PickAndPlaceDemo(Node):
     def _run_mission(self):
 
         height = 185
+        adj_x = 0
+        adj_y = 0
 
         time.sleep(2.0)   # 等节点完全就绪
         self.get_logger().info('===== 任务开始 =====')
 
-        # # 1. 导航到取件点
-        # if not self.nav_to(**PICK_POSE):
-        #     self.get_logger().error('导航失败，任务终止')
-        #     return
-
-        # 2. 机械臂回零
+        # 机械臂回零
         if not self.gcode('$h\n\t'):
             self.get_logger().error('回零失败，任务终止')
         time.sleep(10)
 
-        # # 3. 移动到取件位置
-        # x, y, z = ARM_PICK_POS
-        # if not self.gcode(f'M20 G90 X{x} Y{y} Z{z}'):
-        #     return
-
-        # 4. 拍照 + AprilTag 检测
+        # 拍照 + AprilTag 检测
         #    capture() 返回 (原始Image, List[TargetInfo])
         #    标注图已自动发布到 /mission/image_detected
         raw_img, targets = self.capture()
@@ -262,7 +249,7 @@ class PickAndPlaceDemo(Node):
             adj_x = 0 * best.center_u + 0 * best.center_v + 10
             adj_y = 0 * best.center_u + 0 * best.center_v + 10
 
-            # 3. 下降
+            # 下降
             if not self.gcode(f'M20 G91 Z{-height:.1f}'):
                 return
             time.sleep(3)
@@ -270,31 +257,15 @@ class PickAndPlaceDemo(Node):
             time.sleep(3)
             
         
-        # # 5. 吸气
-        # if not self.gcode('M3 S1000'):
-        #     return
-        # time.sleep(5)
+        # 吸气
+        if not self.gcode('M3 S1000'):
+            return
+        time.sleep(3)
 
-        # # 6. 导航到放件点
-        # if not self.nav_to(**PLACE_POSE):
-        #     self.get_logger().error('导航到放件点失败，任务终止')
-        #     return
-
-        # # 7. 吹气放下
-        # if not self.gcode('M3 S500'):
-        #     return
-        # time.sleep(1)
-
-        # # 8. 关闭气泵
-        # self.gcode('M3 S0')
-        # time.sleep(1)
-
-        # # 11. 回零
-        # self.gcode('$h')
-
-        # # 12. 导航回原点
-        # self.nav_to(**HOME_POSE)
-
+        # 上提到原点
+        self.gcode(f'M20 G90 X{-adj_x:.1f} Y{-adj_y:.1f} Z{height:.1f}')
+        time.sleep(3)
+        
         self.get_logger().info('===== 任务完成 =====')
         rclpy.shutdown()
 

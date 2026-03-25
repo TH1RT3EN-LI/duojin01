@@ -35,8 +35,6 @@ from duojin01_msgs.msg import TargetInfo
 
 # ── 任务参数（根据实际环境修改）──────────────────────────────────────────
 
-
-DETECTION_CONFIDENCE_THRESHOLD = 0.8  # 置信度低于该值的检测结果直接丢弃
 # ──────────────────────────────────────────────────────────────────────────
 
 
@@ -187,22 +185,6 @@ class PickAndPlaceDemo(Node):
 
         # ── AprilTag 检测 ──────────────────────────────────────────────
         annotated, targets = self._detector.detect(raw_image)
-        # 过滤
-        filtered_targets = []
-        for t in targets:
-            if not t.tag_detected:
-                continue
-            # 先检查是否有置信度属性，没有则用默认阈值过滤
-            if hasattr(t, 'confidence') and t.confidence < DETECTION_CONFIDENCE_THRESHOLD:
-                self.get_logger().warn(f'[demo] 低置信度Tag丢弃：ID={t.tag_id}, 置信度={t.confidence:.2f}')
-                continue
-            if t.height_px < 10:  # 像素高度小于10的视为噪声
-                self.get_logger().warn(f'[demo] 过小Tag丢弃：ID={t.tag_id}, 像素高度={t.height_px:.1f}')
-                continue
-            filtered_targets.append(t)
-
-        # 替换为过滤后的结果
-        targets = filtered_targets
 
         # ── 发布标注图（可用 rqt_image_view 订阅 /mission/image_detected 查看）
         self.pub_detected.publish(annotated)
@@ -226,25 +208,51 @@ class PickAndPlaceDemo(Node):
 
     def _run_mission(self):
 
-        height = 170
-        adj_x = 0
-        adj_y = 20
+        height = 185
 
-        # 移动到安全位置
-        self.gcode(f'M20 G90 X{adj_x:.1f} Y{adj_y:.1f} Z{-height:.1f}')
-        time.sleep(3)
+        time.sleep(2.0)   # 等节点完全就绪
+        self.get_logger().info('===== 任务开始 =====')
 
-        # 吹气放下
-        if not self.gcode('M3 S500'):
-            return
-        time.sleep(1)
+        # 机械臂回零
+        if not self.gcode('$h\n\t'):
+            self.get_logger().error('回零失败，任务终止')
+        time.sleep(10)
 
-        # 关闭气泵
-        self.gcode('M3 S0')
-        time.sleep(1)
+        #  拍照 + AprilTag 检测:
+        #    capture() 返回 (原始Image, List[TargetInfo])
+        #    标注图已自动发布到 /mission/image_detected
+        raw_img, targets = self.capture()
+        detected = [t for t in targets if t.tag_detected]
+        if detected:
+            best = detected[0]   # 取第一个检测到的 Tag
+            """
+            tag_detected  bool     是否检测到 Tag
+            tag_id        int32    Tag ID
+            tag_family    string   族，例如 "tag36h11"
+            center_u/v    float32  中心点像素坐标
+            height_px     float32  Tag 在图像中的像素高度（角点间距）
+            cube_vertices_u/v  []  立方体 8 顶点投影像素坐标
+            pose_valid    bool     3D 姿态是否有效（需标定）
+            pos_x/y/z     float32  Tag 在摄像机坐标系下的位置（米）
+                                pos_z = 距摄像机的物理深度（即"高度"）
+            rot_x/y/z/w   float32  旋转四元数
+            """
+            self.get_logger().info(
+                f'[demo] 使用 Tag id={best.tag_id} 指导抓取\n'
+                f'[demo] Tag id={best.tag_id} 的族为 {best.tag_family}\n'
+                f'[demo] 中心点像素坐标({best.center_u} , {best.center_v}\n)'
+            )
+            # 根据 best.center_u/center_v 调整机械臂坐标（此处为占位示例）
+            adj_x = 0
+            adj_y = 0
 
-        # 回零
-        self.gcode('$h')
+            # 下降
+            if not self.gcode(f'M20 G91 Z{-height:.1f}'):
+                return
+            time.sleep(3)
+            self.gcode(f'M20 G90 X{adj_x:.1f} Y{adj_y:.1f}')
+            time.sleep(3)
+            
 
         self.get_logger().info('===== 任务完成 =====')
         rclpy.shutdown()
