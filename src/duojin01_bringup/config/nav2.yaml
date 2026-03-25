@@ -233,8 +233,8 @@ local_costmap:
       robot_base_frame: base_footprint
       use_sim_time: false
       rolling_window: true
-      width: 4
-      height: 4
+      width: 2
+      height: 2
       resolution: 0.03
       footprint: "[[0.21, 0.21], [0.21, -0.21], [-0.21, -0.21], [-0.21, 0.21]]"
       footprint_padding: 0.04
