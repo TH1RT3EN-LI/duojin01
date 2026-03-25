@@ -75,11 +75,15 @@ ros2 launch duojin01_bringup save_map.launch.py
 
 保存依赖 `slam_toolbox` 提供的 `/slam_toolbox/save_map` 服务，请在 `mapping.launch.py` / `sim_mapping.launch.py` / `slam.launch.py` 运行期间执行。
 
+默认会保存到工作区根目录 `maps/`，例如 `duojin01_ws/maps/0.yaml` 和 `duojin01_ws/maps/0.pgm`。
+
 导航（已有地图，默认加载最新的）：
 
 ```bash
 ros2 launch duojin01_bringup navigation.launch.py
 ```
+
+默认会从工作区根目录 `maps/` 中自动选择地图；优先使用最大数字文件名（如 `1.yaml`），否则回退到最近修改的 yaml。`src/duojin01_bringup/maps` 仅保留为历史目录，不再参与默认运行。
 
 摄像头运行(默认/dev/video0 分辨率 640x480)
 ```bash
@@ -181,7 +185,7 @@ ros2 launch duojin01_bringup sim_navigation.launch.py sim_profile:=gpu
 ros2 launch duojin01_bringup save_map.launch.py use_sim_time:=true
 ```
 
-同样依赖 `slam_toolbox` 的 `/slam_toolbox/save_map` 服务，请在 `sim_mapping.launch.py` 或 `slam.launch.py` 运行期间执行。
+同样依赖 `slam_toolbox` 的 `/slam_toolbox/save_map` 服务，请在 `sim_mapping.launch.py` 或 `slam.launch.py` 运行期间执行。默认保存位置同样是工作区根目录 `maps/`。
 
 ---
 
@@ -191,17 +195,17 @@ ros2 launch duojin01_bringup save_map.launch.py use_sim_time:=true
 
 - `base.launch.py`：底盘基础链路（`base_driver`、`twist_mux`、`safety_watchdog`、`ekf`、`robot_state_publisher`）。
 - `mapping.launch.py`：真机建图（`base + slam_toolbox + RViz`）。
-- `navigation.launch.py`：真机导航（`base + nav2 + RViz`）。
-- `nav2.launch.py`：只启动 Nav2（可选 RViz）。
+- `navigation.launch.py`：真机导航（`base + nav2 + RViz`），默认从工作区根目录 `maps/` 自动选图。
+- `nav2.launch.py`：只启动 Nav2（可选 RViz），负责统一解析默认地图与相对 `map` 路径。
 - `slam.launch.py`：只启动 `slam_toolbox`。
 - `joy_teleop.launch.py`：手柄链路。
-- `save_map.launch.py`：等待 `/slam_toolbox/save_map` 服务后调用 `slam_toolbox` 的保存接口。
+- `save_map.launch.py`：等待 `/slam_toolbox/save_map` 服务后调用 `slam_toolbox` 的保存接口，默认写入工作区根目录 `maps/`。
 
 ### 2.2 仿真相关
 
 - `sim.launch.py`：仿真基础链路（Gazebo、桥接、控制器、底盘节点等）。
 - `sim_mapping.launch.py`：仿真建图（`sim + slam_toolbox + scan_frame_rewriter + RViz`）。
-- `sim_navigation.launch.py`：仿真导航（`sim + nav2 + scan_frame_rewriter`）。
+- `sim_navigation.launch.py`：仿真导航（`sim + nav2 + scan_frame_rewriter`），默认从工作区根目录 `maps/` 自动选图。
 
 ---
 
@@ -259,7 +263,7 @@ ros2 launch duojin01_bringup joy_teleop.launch.py
 
 - `use_sim_time`：真机通常 `false`，仿真通常 `true`
 - `use_rviz`：`mapping/navigation/sim_mapping/sim_navigation` 可开关
-- `map`：`navigation` / `sim_navigation` 指定地图 yaml
+- `map`：`navigation` / `sim_navigation` 指定地图 yaml；留空时默认从工作区根目录 `maps/` 自动选最新地图，相对路径也按工作区根目录解析
 - `headless`：仿真可无界面运行
 - `sim_profile`：
   - `gpu`：默认，`ogre + 硬件渲染`

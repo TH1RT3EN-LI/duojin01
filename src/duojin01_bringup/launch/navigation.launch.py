@@ -9,39 +9,9 @@ from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJ
 from launch_ros.actions import Node
 
 
-def _resolve_default_map_yaml(bringup_share: str) -> str:
-    maps_dir = os.path.join(bringup_share, "maps")
-    numeric_maps = []
-    newest_map = None
-    newest_mtime = -1.0
-
-    if os.path.isdir(maps_dir):
-        for filename in os.listdir(maps_dir):
-            if not filename.endswith(".yaml"):
-                continue
-            path = os.path.join(maps_dir, filename)
-            if not os.path.isfile(path):
-                continue
-            stem = os.path.splitext(filename)[0]
-            if stem.isdigit():
-                numeric_maps.append((int(stem), path))
-            mtime = os.path.getmtime(path)
-            if mtime > newest_mtime:
-                newest_mtime = mtime
-                newest_map = path
-
-    if numeric_maps:
-        numeric_maps.sort(key=lambda item: item[0])
-        return numeric_maps[-1][1]
-    if newest_map is not None:
-        return newest_map
-    return os.path.join(maps_dir, "default.yaml")
-
-
 def generate_launch_description():
     bringup_share = get_package_share_directory("duojin01_bringup")
     orbbec_camera_share = get_package_share_directory("orbbec_camera")
-    default_map_yaml = _resolve_default_map_yaml(bringup_share)
 
     use_sim_time = LaunchConfiguration("use_sim_time")
     use_rviz = LaunchConfiguration("use_rviz")
@@ -59,9 +29,7 @@ def generate_launch_description():
     params_file = LaunchConfiguration("params_file")
 
     base_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(bringup_share, "launch", "base.launch.py")
-        ),
+        PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "base.launch.py")),
         launch_arguments={
             "use_foxglove": use_foxglove,
             "use_lidar": "true",
@@ -71,9 +39,7 @@ def generate_launch_description():
     )
 
     nav_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(bringup_share, "launch", "nav2.launch.py")
-        ),
+        PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "nav2.launch.py")),
         launch_arguments={
             "use_rviz": use_rviz,
             "autostart": autostart,
@@ -107,17 +73,7 @@ def generate_launch_description():
         executable="static_transform_publisher",
         name="camera_link_tf",
         output="screen",
-        arguments=[
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "1",
-            "depth_cam",
-            "camera_link",
-        ],
+        arguments=["0", "0", "0", "0", "0", "0", "1", "depth_cam", "camera_link"],
         condition=IfCondition(use_depth_camera),
     )
 
@@ -126,17 +82,7 @@ def generate_launch_description():
         executable="static_transform_publisher",
         name="camera_depth_frame_tf",
         output="screen",
-        arguments=[
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "1",
-            "camera_link",
-            "camera_depth_frame",
-        ],
+        arguments=["0", "0", "0", "0", "0", "0", "1", "camera_link", "camera_depth_frame"],
         condition=IfCondition(use_depth_camera),
     )
 
@@ -161,7 +107,10 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="false")),
+            DeclareLaunchArgument(
+                "use_sim_time",
+                default_value=EnvironmentVariable("USE_SIM_TIME", default_value="false"),
+            ),
             SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
             DeclareLaunchArgument("use_rviz", default_value="true"),
             DeclareLaunchArgument("autostart", default_value="true"),
@@ -170,20 +119,23 @@ def generate_launch_description():
                 "use_depth_camera",
                 default_value=EnvironmentVariable("DUOJIN01_USE_DEPTH_CAMERA", default_value="false"),
             ),
+            DeclareLaunchArgument("depth_camera_launch_file", default_value="gemini_330_series.launch.py"),
             DeclareLaunchArgument(
-                "depth_camera_launch_file",
-                default_value=EnvironmentVariable("DUOJIN01_DEPTH_CAMERA_LAUNCH_FILE", default_value="astra_pro_plus.launch.py"),
+                "depth_camera_name",
+                default_value=EnvironmentVariable("DUOJIN01_DEPTH_CAMERA_NAME", default_value="depth_cam"),
             ),
-            DeclareLaunchArgument("depth_camera_name", default_value="camera"),
-            DeclareLaunchArgument("depth_camera_serial_number", default_value=""),
-            DeclareLaunchArgument("depth_camera_usb_port", default_value=""),
+            DeclareLaunchArgument(
+                "depth_camera_serial_number",
+                default_value=EnvironmentVariable("DUOJIN01_DEPTH_CAMERA_SERIAL_NUMBER", default_value=""),
+            ),
+            DeclareLaunchArgument(
+                "depth_camera_usb_port",
+                default_value=EnvironmentVariable("DUOJIN01_DEPTH_CAMERA_USB_PORT", default_value=""),
+            ),
             DeclareLaunchArgument("nav_log_level", default_value="info"),
             DeclareLaunchArgument("odom0", default_value="/odom"),
-            DeclareLaunchArgument("imu0", default_value="/imu"),
-            DeclareLaunchArgument(
-                "map",
-                default_value=default_map_yaml,
-            ),
+            DeclareLaunchArgument("imu0", default_value="/imu/data"),
+            DeclareLaunchArgument("map", default_value=""),
             DeclareLaunchArgument(
                 "params_file",
                 default_value=os.path.join(bringup_share, "config", "nav2.yaml"),

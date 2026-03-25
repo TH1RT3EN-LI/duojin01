@@ -10,38 +10,8 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
 
-def _resolve_default_map_yaml(bringup_share: str) -> str:
-    maps_dir = os.path.join(bringup_share, "maps")
-    numeric_maps = []
-    newest_map = None
-    newest_mtime = -1.0
-
-    if os.path.isdir(maps_dir):
-        for filename in os.listdir(maps_dir):
-            if not filename.endswith(".yaml"):
-                continue
-            path = os.path.join(maps_dir, filename)
-            if not os.path.isfile(path):
-                continue
-            stem = os.path.splitext(filename)[0]
-            if stem.isdigit():
-                numeric_maps.append((int(stem), path))
-            mtime = os.path.getmtime(path)
-            if mtime > newest_mtime:
-                newest_mtime = mtime
-                newest_map = path
-
-    if numeric_maps:
-        numeric_maps.sort(key=lambda item: item[0])
-        return numeric_maps[-1][1]
-    if newest_map is not None:
-        return newest_map
-    return os.path.join(maps_dir, "default.yaml")
-
-
 def generate_launch_description():
     bringup_share = get_package_share_directory("duojin01_bringup")
-    default_map_yaml = _resolve_default_map_yaml(bringup_share)
 
     headless = LaunchConfiguration("headless")
     use_sim_time = LaunchConfiguration("use_sim_time")
@@ -89,7 +59,7 @@ def generate_launch_description():
     )
 
     nav_launch_delayed = TimerAction(period=8.0, actions=[nav_launch])
-    
+
     scan_rewriter = Node(
         package="duojin01_sim_tools",
         executable="scan_frame_rewriter",
@@ -108,8 +78,14 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("headless", default_value="false"),
-            DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="true")),
-            DeclareLaunchArgument("sim_profile", default_value=EnvironmentVariable("DUOJIN01_SIM_PROFILE", default_value="gpu")),
+            DeclareLaunchArgument(
+                "use_sim_time",
+                default_value=EnvironmentVariable("USE_SIM_TIME", default_value="true"),
+            ),
+            DeclareLaunchArgument(
+                "sim_profile",
+                default_value=EnvironmentVariable("DUOJIN01_SIM_PROFILE", default_value="gpu"),
+            ),
             DeclareLaunchArgument(
                 "use_sim_camera",
                 default_value=EnvironmentVariable("DUOJIN01_SIM_CAMERA_ENABLED", default_value="false"),
@@ -122,10 +98,7 @@ def generate_launch_description():
                 default_value=EnvironmentVariable("DUOJIN01_RVIZ_SOFTWARE_GL", default_value="true"),
             ),
             DeclareLaunchArgument("rviz_config", default_value=default_rviz_config),
-            DeclareLaunchArgument(
-                "map",
-                default_value=default_map_yaml,
-            ),
+            DeclareLaunchArgument("map", default_value=""),
             DeclareLaunchArgument(
                 "params_file",
                 default_value=os.path.join(bringup_share, "config", "nav2.yaml"),

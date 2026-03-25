@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <ament_index_cpp/get_package_prefix.hpp>
 #include <chrono>
 #include <cctype>
 #include <filesystem>
@@ -13,6 +14,38 @@ namespace
 
 namespace fs = std::filesystem;
 using namespace std::chrono_literals;
+
+fs::path resolve_workspace_root()
+{
+  const fs::path package_prefix(ament_index_cpp::get_package_prefix("duojin01_slam_tools"));
+
+  for (fs::path current = package_prefix; !current.empty(); current = current.parent_path()) {
+    if (current.filename() == "install") {
+      const fs::path workspace_root = current.parent_path();
+      if (!workspace_root.empty()) {
+        return workspace_root.lexically_normal();
+      }
+      break;
+    }
+
+    if (current == current.root_path()) {
+      break;
+    }
+  }
+
+  throw std::runtime_error(
+          "failed to resolve workspace root from package prefix: " + package_prefix.string());
+}
+
+std::string resolve_output_dir(const std::string & output_dir)
+{
+  const fs::path dir = output_dir.empty() ? fs::path("maps") : fs::path(output_dir);
+  if (dir.is_absolute()) {
+    return dir.lexically_normal().string();
+  }
+
+  return (resolve_workspace_root() / dir).lexically_normal().string();
+}
 
 std::string next_numeric_map_name(const std::string & output_dir)
 {
@@ -67,12 +100,10 @@ public:
   : rclcpp::Node("save_map_client_node")
   {
     const std::string map_name_arg = this->declare_parameter<std::string>("map_name", "auto");
-    output_dir_ = this->declare_parameter<std::string>("output_dir", "");
+    const std::string output_dir_arg = this->declare_parameter<std::string>("output_dir", "maps");
     wait_timeout_sec_ = this->declare_parameter<double>("wait_timeout", 30.0);
 
-    if (output_dir_.empty()) {
-      throw std::runtime_error("output_dir parameter must not be empty");
-    }
+    output_dir_ = resolve_output_dir(output_dir_arg);
 
     map_name_ =
       (map_name_arg.empty() || map_name_arg == "auto") ?
