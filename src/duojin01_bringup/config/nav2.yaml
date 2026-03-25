@@ -237,8 +237,11 @@ local_costmap:
       height: 3
       resolution: 0.03
       footprint: "[[0.21, 0.21], [0.21, -0.21], [-0.21, -0.21], [-0.21, 0.21]]"
-      footprint_padding: 0.04
-      plugins: ["obstacle_layer", "inflation_layer"]
+      footprint_padding: 0.08
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
