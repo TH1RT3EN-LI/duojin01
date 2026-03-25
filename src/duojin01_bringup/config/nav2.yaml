@@ -233,8 +233,8 @@ local_costmap:
       robot_base_frame: base_footprint
       use_sim_time: false
       rolling_window: true
-      width: 2
-      height: 2
+      width: 3
+      height: 3
       resolution: 0.03
       footprint: "[[0.21, 0.21], [0.21, -0.21], [-0.21, -0.21], [-0.21, 0.21]]"
       footprint_padding: 0.04
@@ -242,7 +242,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.45
+        inflation_radius: 0.30
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
