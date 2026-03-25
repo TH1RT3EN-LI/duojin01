@@ -47,6 +47,8 @@ class KeyboardTeleopCore:
         angular_speed: float,
         speed_step: float,
         turn_step: float,
+        max_linear_speed: float | None = None,
+        max_angular_speed: float | None = None,
         accel_limit_linear: float = 2.0,
         decel_limit_linear: float = 3.0,
         accel_limit_angular: float = 6.0,
@@ -57,8 +59,10 @@ class KeyboardTeleopCore:
         self._pressed_move_keys: set[str] = set()
         self._move_key_last_seen: dict[str, float] = {}
 
-        self._linear_speed = max(0.0, float(linear_speed))
-        self._angular_speed = max(0.0, float(angular_speed))
+        self._max_linear_speed = self._coerce_max_speed(max_linear_speed)
+        self._max_angular_speed = self._coerce_max_speed(max_angular_speed)
+        self._linear_speed = self._clamp_speed(linear_speed, self._max_linear_speed)
+        self._angular_speed = self._clamp_speed(angular_speed, self._max_angular_speed)
         self._speed_step = max(0.0, float(speed_step))
         self._turn_step = max(0.0, float(turn_step))
 
@@ -98,8 +102,14 @@ class KeyboardTeleopCore:
 
             if normalized_key in SPEED_BINDINGS:
                 linear_step_direction, angular_step_direction = SPEED_BINDINGS[normalized_key]
-                self._linear_speed = max(0.0, self._linear_speed + linear_step_direction * self._speed_step)
-                self._angular_speed = max(0.0, self._angular_speed + angular_step_direction * self._turn_step)
+                self._linear_speed = self._clamp_speed(
+                    self._linear_speed + linear_step_direction * self._speed_step,
+                    self._max_linear_speed,
+                )
+                self._angular_speed = self._clamp_speed(
+                    self._angular_speed + angular_step_direction * self._turn_step,
+                    self._max_angular_speed,
+                )
                 return True
 
         return False
@@ -246,6 +256,19 @@ class KeyboardTeleopCore:
     @staticmethod
     def _coerce_now(now: float | None) -> float:
         return time.monotonic() if now is None else float(now)
+
+    @staticmethod
+    def _coerce_max_speed(max_speed: float | None) -> float | None:
+        if max_speed is None:
+            return None
+        return max(0.0, float(max_speed))
+
+    @staticmethod
+    def _clamp_speed(value: float, max_speed: float | None) -> float:
+        clamped_value = max(0.0, float(value))
+        if max_speed is None:
+            return clamped_value
+        return min(clamped_value, max_speed)
 
     @staticmethod
     def _slew_axis(

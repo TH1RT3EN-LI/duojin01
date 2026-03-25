@@ -11,6 +11,26 @@ import rcl_interfaces.msg
 import rclpy
 
 from duojin01_teleop.keyboard_teleop_core import KeyboardTeleopCore
+from duojin01_teleop.keyboard_teleop_defaults import (
+    ACCEL_LIMIT_ANGULAR,
+    ACCEL_LIMIT_LINEAR,
+    DECEL_LIMIT_ANGULAR,
+    DECEL_LIMIT_LINEAR,
+    DEFAULT_ANGULAR_SPEED,
+    DEFAULT_ANGULAR_SPEED_STEP,
+    DEFAULT_CMD_VEL_TOPIC,
+    DEFAULT_FRAME_ID,
+    DEFAULT_IDLE_TIMEOUT_SEC,
+    DEFAULT_PUBLISH_RATE,
+    DEFAULT_LINEAR_SPEED,
+    DEFAULT_LINEAR_SPEED_STEP,
+    DEFAULT_MAX_ANGULAR_SPEED,
+    DEFAULT_MAX_LINEAR_SPEED,
+    DEFAULT_READ_POLL_TIMEOUT_SEC,
+    DEFAULT_REPEAT_TIMEOUT_SEC,
+    DEFAULT_STAMPED,
+    DEFAULT_TTY_DEVICE_PATH,
+)
 
 MSG = """
 当前按键布局：
@@ -32,13 +52,7 @@ TTY 模式通过按键重复超时推断松开
 CTRL-C 退出
 """
 
-ACCEL_LIMIT_LINEAR = 2.0
-DECEL_LIMIT_LINEAR = 3.0
-ACCEL_LIMIT_ANGULAR = 6.0
-DECEL_LIMIT_ANGULAR = 8.0
-IDLE_TIMEOUT_SEC = 0.0
-DEFAULT_REPEAT_TIMEOUT_SEC = 0.50
-DEFAULT_READ_POLL_TIMEOUT_SEC = 0.02
+IDLE_TIMEOUT_SEC = DEFAULT_IDLE_TIMEOUT_SEC
 
 
 def vels(linear_speed, angular_speed):
@@ -186,14 +200,16 @@ def main():
     node = rclpy.create_node('keyboard_teleop_node')
 
     read_only_descriptor = rcl_interfaces.msg.ParameterDescriptor(read_only=True)
-    stamped = node.declare_parameter('stamped', False, read_only_descriptor).value
-    frame_id = node.declare_parameter('frame_id', '', read_only_descriptor).value
-    speed = node.declare_parameter('speed', 0.25, read_only_descriptor).value
-    turn = node.declare_parameter('turn', 0.5, read_only_descriptor).value
-    speed_step = node.declare_parameter('speed_step', 0.05, read_only_descriptor).value
-    turn_step = node.declare_parameter('turn_step', 0.1, read_only_descriptor).value
-    cmd_vel_topic = node.declare_parameter('cmd_vel_topic', '/cmd_vel', read_only_descriptor).value
-    publish_rate = node.declare_parameter('publish_rate', 100.0, read_only_descriptor).value
+    stamped = node.declare_parameter('stamped', DEFAULT_STAMPED, read_only_descriptor).value
+    frame_id = node.declare_parameter('frame_id', DEFAULT_FRAME_ID, read_only_descriptor).value
+    speed = node.declare_parameter('speed', DEFAULT_LINEAR_SPEED, read_only_descriptor).value
+    turn = node.declare_parameter('turn', DEFAULT_ANGULAR_SPEED, read_only_descriptor).value
+    max_speed = node.declare_parameter('max_speed', DEFAULT_MAX_LINEAR_SPEED, read_only_descriptor).value
+    max_turn = node.declare_parameter('max_turn', DEFAULT_MAX_ANGULAR_SPEED, read_only_descriptor).value
+    speed_step = node.declare_parameter('speed_step', DEFAULT_LINEAR_SPEED_STEP, read_only_descriptor).value
+    turn_step = node.declare_parameter('turn_step', DEFAULT_ANGULAR_SPEED_STEP, read_only_descriptor).value
+    cmd_vel_topic = node.declare_parameter('cmd_vel_topic', DEFAULT_CMD_VEL_TOPIC, read_only_descriptor).value
+    publish_rate = node.declare_parameter('publish_rate', DEFAULT_PUBLISH_RATE, read_only_descriptor).value
     repeat_timeout_sec = node.declare_parameter(
         'repeat_timeout_sec',
         DEFAULT_REPEAT_TIMEOUT_SEC,
@@ -204,7 +220,7 @@ def main():
         DEFAULT_READ_POLL_TIMEOUT_SEC,
         read_only_descriptor,
     ).value
-    tty_device_path = node.declare_parameter('tty_device_path', '', read_only_descriptor).value
+    tty_device_path = node.declare_parameter('tty_device_path', DEFAULT_TTY_DEVICE_PATH, read_only_descriptor).value
 
     if not stamped and frame_id:
         raise Exception("'frame_id' can only be set when 'stamped' is True")
@@ -232,6 +248,8 @@ def main():
         angular_speed=float(turn),
         speed_step=float(speed_step),
         turn_step=float(turn_step),
+        max_linear_speed=float(max_speed),
+        max_angular_speed=float(max_turn),
         accel_limit_linear=ACCEL_LIMIT_LINEAR,
         decel_limit_linear=DECEL_LIMIT_LINEAR,
         accel_limit_angular=ACCEL_LIMIT_ANGULAR,
@@ -271,6 +289,10 @@ def main():
         print('TTY 模式参数:\t按键超时 %.2f s\t轮询超时 %.3f s' % (
             max(0.0, float(repeat_timeout_sec)),
             max(0.001, float(read_poll_timeout)),
+        ))
+        print('速度上限:\t线速度 %.2f m/s\t角速度 %.2f rad/s' % (
+            float(max_speed),
+            float(max_turn),
         ))
         print(vels(float(speed), float(turn)))
         publisher_thread.start()

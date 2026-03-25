@@ -3,8 +3,10 @@ keyboard_teleop_node:
     cmd_vel_topic: '/cmd_vel'
     stamped: false
     frame_id: ''
-    speed: 0.25
-    turn: 0.5
+    speed: 0.3
+    turn: 0.3
+    max_speed: 0.6
+    max_turn: 0.6
     speed_step: 0.05
     turn_step: 0.1
     publish_rate: 120.0

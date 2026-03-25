@@ -114,6 +114,34 @@ def test_speed_adjustment_stays_non_negative():
     assert status.angular_speed == 0.1
 
 
+def test_speed_adjustment_respects_configured_maximums():
+    core = KeyboardTeleopCore(
+        linear_speed=0.8,
+        angular_speed=0.7,
+        speed_step=0.1,
+        turn_step=0.2,
+        max_linear_speed=0.6,
+        max_angular_speed=0.6,
+        accel_limit_linear=100.0,
+        decel_limit_linear=100.0,
+        accel_limit_angular=100.0,
+        decel_limit_angular=100.0,
+        idle_timeout_sec=0.0,
+    )
+    start_time = 100.0
+
+    status = core.status()
+    assert status.linear_speed == 0.6
+    assert status.angular_speed == 0.6
+
+    assert core.handle_key_press('i', start_time) is True
+    assert core.handle_key_press('o', start_time + 0.1) is True
+
+    status = core.status()
+    assert status.linear_speed == 0.6
+    assert status.angular_speed == 0.6
+
+
 def test_slew_rate_limits_acceleration_between_snapshots():
     core = KeyboardTeleopCore(
         linear_speed=1.0,
