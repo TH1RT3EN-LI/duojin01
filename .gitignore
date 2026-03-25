@@ -1,7 +1,8 @@
 build/
 log/
 install/
-maps/*
+maps/**
+!maps/.keep
 core.*
 Dockerfile
 source.sh
