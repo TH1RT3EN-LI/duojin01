@@ -209,7 +209,7 @@ class PickAndPlaceDemo(Node):
 
     def _run_mission(self):
 
-        height = 185
+        height = 190
         adj_x = 0
         adj_y = 0
 
@@ -246,14 +246,15 @@ class PickAndPlaceDemo(Node):
                 f'[demo] 中心点像素坐标({best.center_u} , {best.center_v}\n)'
             )
             # 根据 best.center_u/center_v 调整机械臂坐标（此处为占位示例）
-            adj_x = 0.000960 * best.center_u + -0.263023 * best.center_v + 125.667488
-            adj_y = -0.270350 * best.center_u + 0.002089 * best.center_v + 206.632832
+            adj_x = 0.0 * best.center_u + 0.0 * best.center_v + 10
+            adj_y = 0.0 * best.center_u + 0.0 * best.center_v + 0
 
+
+            self.gcode(f'M20 G91 X{adj_x:.1f} Y{adj_y:.1f}')
+            time.sleep(3)
             # 下降
             if not self.gcode(f'M20 G91 Z{-height:.1f}'):
                 return
-            time.sleep(3)
-            self.gcode(f'M20 G90 X{adj_x:.1f} Y{adj_y:.1f}')
             time.sleep(3)
             
         
@@ -263,7 +264,7 @@ class PickAndPlaceDemo(Node):
         time.sleep(3)
 
         # 上提到原点
-        self.gcode(f'M20 G90 X{-adj_x:.1f} Y{-adj_y:.1f} Z{height:.1f}')
+        self.gcode(f'M20 G91 X{-adj_x:.1f} Y{-adj_y:.1f} Z{height:.1f}')
         time.sleep(3)
         
         self.get_logger().info('===== 任务完成 =====')

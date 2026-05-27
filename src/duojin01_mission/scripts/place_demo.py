@@ -231,7 +231,7 @@ class PickAndPlaceDemo(Node):
         adj_y = 20
 
         # 移动到安全位置
-        self.gcode(f'M20 G90 X{adj_x:.1f} Y{adj_y:.1f} Z{-height:.1f}')
+        self.gcode(f'M20 G91 X{adj_x:.1f} Y{adj_y:.1f} Z{-height:.1f}')
         time.sleep(3)
 
         # 吹气放下
