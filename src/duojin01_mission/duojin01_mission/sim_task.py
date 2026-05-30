@@ -60,16 +60,28 @@ GCODE_TIMEOUT_SEC = 10.0
 TF_TIMEOUT_SEC = 1.0
 POST_NAV_MOVE_X_M = 0.45
 POST_NAV_MOVE_SPEED_MPS = 0.30
+B_REGION_EXIT_DIRECT_SPEED_MPS = 0.30
 C_REGION_EXIT_DIRECT_SPEED_MPS = 0.30
 B_REGION_TRANSIT_X = 0.72
 B_REGION_TRANSIT_Y = -0.26
 C_REGION_TRANSIT_X = 2.33
 C_REGION_TRANSIT_Y = -0.26
+ENABLE_EXTRA_MANUAL_CYCLE = False
+EXTRA_MANUAL_CYCLE_ONLY = False
+EXTRA_MANUAL_YAW_DELTA = math.radians(210.0)
+EXTRA_MANUAL_PRE_PICK_X_M = 3.14
+EXTRA_MANUAL_PRE_PICK_Y_M = -0.66
+EXTRA_MANUAL_PICK_X_M = 3.05
+EXTRA_MANUAL_PICK_Y_M = -0.32
+EXTRA_MANUAL_PICK_DESCEND_MM = 100.0
+EXTRA_MANUAL_TRANSFER_NEG_Y_M = 0.30
+EXTRA_MANUAL_FINAL_YAW_DELTA = math.radians(100.0)
+RETURN_TO_START_YAW_OFFSET_RAD = math.radians(15.0)
 FINAL_TASK_NAV_X = 0.374
 FINAL_TASK_NAV_Y = -2.7
-FINAL_TASK_YAW_DELTA = math.pi + (math.pi / 6.0)
+FINAL_TASK_YAW_DELTA = math.pi + math.radians(40.0)
 FINAL_TASK_TURN_SPEED_RADPS = 0.5
-FINAL_TASK_MOVE_X_M = -0.50
+FINAL_TASK_MOVE_X_M = -0.5
 FINAL_TASK_MOVE_SPEED_MPS = 0.30
 FINAL_TASK_OBSERVE_X_MM = ARM_HOME_CARTESIAN_MM["x"] - 50.0
 FINAL_TASK_OBSERVE_Y_MM = ARM_HOME_CARTESIAN_MM["y"] + 30.0
@@ -163,11 +175,22 @@ class SimTask(Node):
         self.declare_parameter("startup_delay_sec", TASK_STARTUP_DELAY_SEC)
         self.declare_parameter("post_nav_move_x_m", POST_NAV_MOVE_X_M)
         self.declare_parameter("post_nav_move_speed_mps", POST_NAV_MOVE_SPEED_MPS)
+        self.declare_parameter("b_region_exit_direct_speed_mps", B_REGION_EXIT_DIRECT_SPEED_MPS)
         self.declare_parameter("c_region_exit_direct_speed_mps", C_REGION_EXIT_DIRECT_SPEED_MPS)
         self.declare_parameter("b_region_transit_x", B_REGION_TRANSIT_X)
         self.declare_parameter("b_region_transit_y", B_REGION_TRANSIT_Y)
         self.declare_parameter("c_region_transit_x", C_REGION_TRANSIT_X)
         self.declare_parameter("c_region_transit_y", C_REGION_TRANSIT_Y)
+        self.declare_parameter("enable_extra_manual_cycle", ENABLE_EXTRA_MANUAL_CYCLE)
+        self.declare_parameter("extra_manual_cycle_only", EXTRA_MANUAL_CYCLE_ONLY)
+        self.declare_parameter("extra_manual_pre_pick_x_m", EXTRA_MANUAL_PRE_PICK_X_M)
+        self.declare_parameter("extra_manual_pre_pick_y_m", EXTRA_MANUAL_PRE_PICK_Y_M)
+        self.declare_parameter("extra_manual_pick_x_m", EXTRA_MANUAL_PICK_X_M)
+        self.declare_parameter("extra_manual_pick_y_m", EXTRA_MANUAL_PICK_Y_M)
+        self.declare_parameter("extra_manual_pick_descend_mm", EXTRA_MANUAL_PICK_DESCEND_MM)
+        self.declare_parameter("extra_manual_transfer_neg_y_m", EXTRA_MANUAL_TRANSFER_NEG_Y_M)
+        self.declare_parameter("extra_manual_final_yaw_delta", EXTRA_MANUAL_FINAL_YAW_DELTA)
+        self.declare_parameter("return_to_start_yaw_offset_rad", RETURN_TO_START_YAW_OFFSET_RAD)
         self.declare_parameter("final_task_nav_x", FINAL_TASK_NAV_X)
         self.declare_parameter("final_task_nav_y", FINAL_TASK_NAV_Y)
         self.declare_parameter("final_task_yaw_delta", FINAL_TASK_YAW_DELTA)
@@ -226,6 +249,9 @@ class SimTask(Node):
         self.startup_delay_sec = float(self.get_parameter("startup_delay_sec").value)
         self.post_nav_move_x_m = float(self.get_parameter("post_nav_move_x_m").value)
         self.post_nav_move_speed_mps = float(self.get_parameter("post_nav_move_speed_mps").value)
+        self.b_region_exit_direct_speed_mps = float(
+            self.get_parameter("b_region_exit_direct_speed_mps").value
+        )
         self.c_region_exit_direct_speed_mps = float(
             self.get_parameter("c_region_exit_direct_speed_mps").value
         )
@@ -233,6 +259,28 @@ class SimTask(Node):
         self.b_region_transit_y = float(self.get_parameter("b_region_transit_y").value)
         self.c_region_transit_x = float(self.get_parameter("c_region_transit_x").value)
         self.c_region_transit_y = float(self.get_parameter("c_region_transit_y").value)
+        self.enable_extra_manual_cycle = bool(self.get_parameter("enable_extra_manual_cycle").value)
+        self.extra_manual_cycle_only = bool(self.get_parameter("extra_manual_cycle_only").value)
+        self.extra_manual_pre_pick_x_m = float(
+            self.get_parameter("extra_manual_pre_pick_x_m").value
+        )
+        self.extra_manual_pre_pick_y_m = float(
+            self.get_parameter("extra_manual_pre_pick_y_m").value
+        )
+        self.extra_manual_pick_x_m = float(self.get_parameter("extra_manual_pick_x_m").value)
+        self.extra_manual_pick_y_m = float(self.get_parameter("extra_manual_pick_y_m").value)
+        self.extra_manual_pick_descend_mm = float(
+            self.get_parameter("extra_manual_pick_descend_mm").value
+        )
+        self.extra_manual_transfer_neg_y_m = float(
+            self.get_parameter("extra_manual_transfer_neg_y_m").value
+        )
+        self.extra_manual_final_yaw_delta = float(
+            self.get_parameter("extra_manual_final_yaw_delta").value
+        )
+        self.return_to_start_yaw_offset_rad = float(
+            self.get_parameter("return_to_start_yaw_offset_rad").value
+        )
         self.final_task_nav_x = float(self.get_parameter("final_task_nav_x").value)
         self.final_task_nav_y = float(self.get_parameter("final_task_nav_y").value)
         self.final_task_yaw_delta = float(self.get_parameter("final_task_yaw_delta").value)
@@ -440,6 +488,13 @@ class SimTask(Node):
             f"phase={phase}, slot={slot_id}, transit=({transit_pose[0]:.3f}, {transit_pose[1]:.3f})"
         )
         normalized_slot_id = normalize_slot_id(slot_id)
+        if normalized_slot_id.startswith("B") and phase == "exit":
+            return self.drive_direct_to_map_point(
+                target_x=transit_pose[0],
+                target_y=transit_pose[1],
+                speed_mps=abs(self.b_region_exit_direct_speed_mps),
+                label="b-region exit direct move",
+            )
         if normalized_slot_id.startswith("C") and phase == "exit":
             return self.drive_direct_to_map_point(
                 target_x=transit_pose[0],
@@ -1172,7 +1227,8 @@ class SimTask(Node):
             )
             return True
 
-        yaw_error = self.normalize_yaw(start_yaw - current_yaw)
+        target_yaw = self.normalize_yaw(start_yaw + self.return_to_start_yaw_offset_rad)
+        yaw_error = self.normalize_yaw(target_yaw - current_yaw)
         self.rotate_in_place(
             angle_rad=yaw_error,
             angular_speed_radps=self.final_task_turn_speed_radps,
@@ -1181,14 +1237,156 @@ class SimTask(Node):
         time.sleep(0.5)
         return True
 
+    def run_extra_manual_cycle(self) -> bool:
+        if self._start_pose_xy_yaw is None:
+            self.get_logger().error("[sim_task] extra manual cycle failed: start pose is unavailable")
+            return False
+
+        start_x, start_y, start_yaw = self._start_pose_xy_yaw
+        target_yaw = self.normalize_yaw(start_yaw + EXTRA_MANUAL_YAW_DELTA)
+
+        current_yaw = self.get_base_yaw_in_map()
+        if current_yaw is None:
+            self.get_logger().error("[sim_task] extra manual cycle failed: current base yaw is unavailable")
+            return False
+
+        turn_delta = (target_yaw - current_yaw) % (2.0 * math.pi)
+        self.rotate_in_place(
+            angle_rad=turn_delta,
+            angular_speed_radps=self.final_task_turn_speed_radps,
+            label="extra cycle yaw align",
+        )
+        time.sleep(0.5)
+
+        b_transit_pose = self.get_region_transit_pose("B1")
+        if b_transit_pose is None:
+            return False
+        if not self.drive_direct_to_map_point(
+            target_x=b_transit_pose[0],
+            target_y=b_transit_pose[1],
+            speed_mps=abs(self.post_nav_move_speed_mps),
+            label="extra cycle to b transit",
+        ):
+            return False
+        time.sleep(0.5)
+
+        if not self.drive_direct_to_map_point(
+            target_x=self.extra_manual_pre_pick_x_m,
+            target_y=self.extra_manual_pre_pick_y_m,
+            speed_mps=abs(self.post_nav_move_speed_mps),
+            label="extra cycle to manual pre-pick point",
+        ):
+            return False
+        time.sleep(0.5)
+
+        if not self.arm_home():
+            return False
+        if not self.move_to_observe_pose():
+            return False
+
+        if not self.drive_direct_to_map_point(
+            target_x=self.extra_manual_pick_x_m,
+            target_y=self.extra_manual_pick_y_m,
+            speed_mps=abs(self.post_nav_move_speed_mps),
+            label="extra cycle to manual pick point",
+        ):
+            return False
+        time.sleep(0.5)
+        self.get_logger().info("[sim_task] extra cycle waiting 5.0s before manual pick descend")
+        time.sleep(5.0)
+
+        pick_pose_mm = (
+            self._observe_pose_mm[0],
+            self._observe_pose_mm[1],
+            self._observe_pose_mm[2] - self.extra_manual_pick_descend_mm,
+        )
+        if not self.arm_move_absolute(*pick_pose_mm):
+            return False
+        time.sleep(self.settle_sec_after_move)
+        if not self.set_suction(True):
+            return False
+        time.sleep(1.0)
+        if not self.move_to_observe_pose():
+            return False
+
+        if not self.drive_direct_to_map_point(
+            target_x=self.extra_manual_pre_pick_x_m,
+            target_y=self.extra_manual_pre_pick_y_m,
+            speed_mps=abs(self.post_nav_move_speed_mps),
+            label="extra cycle back to manual pre-pick point",
+        ):
+            return False
+        time.sleep(0.5)
+
+        current_pose = self.get_base_pose_in_map()
+        if current_pose is None:
+            self.get_logger().error("[sim_task] extra manual cycle failed: current base pose is unavailable")
+            return False
+        current_x, current_y, _ = current_pose
+        if not self.drive_direct_to_map_point(
+            target_x=current_x,
+            target_y=current_y - self.extra_manual_transfer_neg_y_m,
+            speed_mps=abs(self.post_nav_move_speed_mps),
+            label="extra cycle move map -y",
+        ):
+            return False
+        time.sleep(0.5)
+
+        if not self.drive_direct_to_map_point(
+            target_x=b_transit_pose[0],
+            target_y=b_transit_pose[1],
+            speed_mps=abs(self.post_nav_move_speed_mps),
+            label="extra cycle back to b transit",
+        ):
+            return False
+        time.sleep(0.5)
+
+        if not self.drive_direct_to_map_point(
+            target_x=self.final_task_nav_x,
+            target_y=self.final_task_nav_y,
+            speed_mps=abs(self.post_nav_move_speed_mps),
+            label="extra cycle back to final point",
+        ):
+            return False
+        time.sleep(0.5)
+
+        self.rotate_in_place(
+            angle_rad=self.extra_manual_final_yaw_delta,
+            angular_speed_radps=self.final_task_turn_speed_radps,
+            label="extra cycle final turn",
+        )
+        time.sleep(0.5)
+
+        self.move_in_map_x(
+            distance=self.final_task_move_x_m,
+            speed=abs(self.final_task_move_speed_mps),
+            label="extra cycle final approach",
+        )
+        time.sleep(0.5)
+
+        if self.pre_release_sleep_sec > 0.0:
+            self.get_logger().info(
+                "[sim_task] extra cycle waiting before suction off: "
+                f"{self.pre_release_sleep_sec:.1f}s"
+            )
+            time.sleep(self.pre_release_sleep_sec)
+        if not self.set_suction(False):
+            return False
+        time.sleep(1.0)
+        if not self.arm_home():
+            return False
+        return True
+
+    def run_extra_manual_cycle_only_flow(self) -> bool:
+        if not self.run_extra_manual_cycle():
+            return False
+        if not self.return_to_start_pose():
+            return False
+        return True
+
     def _run_task(self) -> None:
         time.sleep(max(0.0, self.startup_delay_sec))
         self.get_logger().info(f"===== sim_task started, slots={self.slot_sequence} =====")
-
-        if not self.slot_sequence:
-            self.get_logger().error("[sim_task] no slot ids were provided")
-            rclpy.shutdown()
-            return
 
         self._start_pose_xy_yaw = self.get_base_pose_in_map()
         if self._start_pose_xy_yaw is None:
@@ -1200,6 +1398,27 @@ class SimTask(Node):
                 f"y={self._start_pose_xy_yaw[1]:.3f}, "
                 f"yaw={self._start_pose_xy_yaw[2]:.3f}"
             )
+
+        if self.extra_manual_cycle_only:
+            self.get_logger().info(
+                "[sim_task] extra_manual_cycle_only=true, skip standard slot/final flow"
+            )
+            if not self.run_extra_manual_cycle_only_flow():
+                self.get_logger().error("[sim_task] extra manual cycle-only task failed")
+                self.best_effort_release()
+                rclpy.shutdown()
+                return
+
+            self.best_effort_release()
+            self.arm_home()
+            self.get_logger().info("[sim_task] extra manual cycle-only task completed")
+            rclpy.shutdown()
+            return
+
+        if not self.slot_sequence:
+            self.get_logger().error("[sim_task] no slot ids were provided")
+            rclpy.shutdown()
+            return
 
         total_slots = len(self.slot_sequence)
         for index, slot_id in enumerate(self.slot_sequence, start=1):
@@ -1216,7 +1435,23 @@ class SimTask(Node):
             rclpy.shutdown()
             return
 
-        if not self.return_to_start_pose():
+        if self.enable_extra_manual_cycle:
+            self.get_logger().info(
+                "[sim_task] enable_extra_manual_cycle=true, return to start before extra cycle"
+            )
+            if not self.return_to_start_pose():
+                self.get_logger().error(
+                    "[sim_task] failed to return to start pose before extra manual cycle"
+                )
+                self.best_effort_release()
+                rclpy.shutdown()
+                return
+            if not self.run_extra_manual_cycle_only_flow():
+                self.get_logger().error("[sim_task] extra manual cycle failed after return to start")
+                self.best_effort_release()
+                rclpy.shutdown()
+                return
+        elif not self.return_to_start_pose():
             self.get_logger().error("[sim_task] failed to return to start pose")
             self.best_effort_release()
             rclpy.shutdown()

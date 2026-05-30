@@ -1060,12 +1060,12 @@
     <include>
       <name>rack03_chips_bag_a</name>
       <uri>model://chips-bag-a</uri>
-      <pose>3.106281 0.039047 0.245806 0 0 0</pose>
+      <pose>3.186281 -0.090953 0.245806 0 0 0</pose>
     </include>
     <include>
       <name>rack03_chips_bag_b</name>
       <uri>model://chips-bag-b</uri>
-      <pose>3.106281 0.039047 0.708506 0 0 0</pose>
+      <pose>3.186281 -0.090953 0.708506 0 0 0</pose>
     </include>
   </world>
 </sdf>
