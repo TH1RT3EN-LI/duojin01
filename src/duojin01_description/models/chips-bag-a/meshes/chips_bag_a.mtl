@@ -1,0 +1,6 @@
+newmtl chips_bag_a_material
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.100000 0.100000 0.100000
+Ns 8.000000
+map_Kd chips_bag_a_diffuse.jpg

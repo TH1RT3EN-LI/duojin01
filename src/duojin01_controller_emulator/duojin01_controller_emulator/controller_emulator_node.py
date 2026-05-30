@@ -75,7 +75,7 @@ class Duojin01ControllerEmulator(Node):
     def __init__(self) -> None:
         super().__init__("duojin01_controller_emulator")
 
-        self.declare_parameter("pty_link_path", "/tmp/duojin01_controller")
+        self.declare_parameter("pty_link_path", f"/tmp/duojin01_controller_{os.getuid()}")
         self.declare_parameter("odom_topic", "/sim/odom")
         self.declare_parameter("cmd_vel_out_topic", "/cmd_vel_sim")
 

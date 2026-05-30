@@ -1,6 +1,6 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -33,7 +33,8 @@ def generate_launch_description():
             DeclareLaunchArgument("map_name", default_value="auto"),
             DeclareLaunchArgument("output_dir", default_value="maps"),
             DeclareLaunchArgument("wait_timeout", default_value="30"),
-            DeclareLaunchArgument("use_sim_time", default_value="false"),
+            DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="false")),
+            SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
             save_map_client,
         ]
     )

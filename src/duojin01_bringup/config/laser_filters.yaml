@@ -1,0 +1,14 @@
+scan_to_scan_filter_chain:
+  ros__parameters:
+    # Robot-body exclusion polygon defined in base_link.
+    # This removes self-returns while preserving close external obstacles.
+    filter1:
+      name: self_filter
+      type: laser_filters/StaticLaserScanPolygonFilter
+      params:
+        polygon_frame: base_link
+        footprint: "[[0.26, 0.18], [0.26, -0.18], [0.21, -0.24], [-0.21, -0.24], [-0.23, -0.18], [-0.23, 0.18], [-0.21, 0.24], [0.21, 0.24]]"
+        polygon_padding: 0.05
+        invert: false
+        transform_timeout: 0.5
+        footprint_topic: /laser_filter_polygon_override

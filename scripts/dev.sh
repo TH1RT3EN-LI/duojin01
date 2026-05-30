@@ -18,10 +18,12 @@ USB_BUS="${USB_BUS:-0}"
 DEV="${DEV:-}"
 DEV_LIST="${DEV_LIST:-}"
 DEV_GLOB="${DEV_GLOB:-}"
+DOCKER_GPUS="${DOCKER_GPUS:-all}"
 
 DOCKER_DEV_ARGS=()
 DOCKER_GROUP_ARGS=()
 DOCKER_ENV_ARGS=()
+DOCKER_GPU_ARGS=()
 HOST_XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}"
 HAVE_X11=0
 HAVE_WAYLAND=0
@@ -97,6 +99,16 @@ if [[ "$GPU" == "1" ]]; then
   else
     echo "GPU=1 but /dev/dri not found on host, falling back to software rendering." >&2
   fi
+
+  if [[ -c /dev/nvidiactl ]] || command -v nvidia-smi >/dev/null 2>&1; then
+    DOCKER_GPU_ARGS+=(--gpus "$DOCKER_GPUS")
+    DOCKER_ENV_ARGS+=(-e NVIDIA_VISIBLE_DEVICES="${NVIDIA_VISIBLE_DEVICES:-all}")
+    DOCKER_ENV_ARGS+=(-e NVIDIA_DRIVER_CAPABILITIES="${NVIDIA_DRIVER_CAPABILITIES:-all}")
+
+    if docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q '"nvidia"'; then
+      DOCKER_GPU_ARGS+=(--runtime=nvidia)
+    fi
+  fi
 fi
 
 if [[ "$USB_BUS" == "1" ]] && [[ -d /dev/bus/usb ]]; then
@@ -143,6 +155,7 @@ args=(
 args+=( "${DOCKER_DEV_ARGS[@]}" )
 args+=( "${DOCKER_GROUP_ARGS[@]}" )
 args+=( "${DOCKER_ENV_ARGS[@]}" )
+args+=( "${DOCKER_GPU_ARGS[@]}" )
 
 if [[ "$NET_HOST" == "1" ]]; then
   args+=(--net=host)

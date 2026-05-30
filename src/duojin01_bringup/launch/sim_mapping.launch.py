@@ -4,7 +4,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -15,26 +15,32 @@ def generate_launch_description():
     headless = LaunchConfiguration("headless")
     use_sim_time = LaunchConfiguration("use_sim_time")
     sim_profile = LaunchConfiguration("sim_profile")
-    use_sim_camera = LaunchConfiguration("use_sim_camera")
     use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
     use_rviz = LaunchConfiguration("use_rviz")
     use_foxglove = LaunchConfiguration("use_foxglove")
     rviz_config = LaunchConfiguration("rviz_config")
     rviz_software_gl = LaunchConfiguration("rviz_software_gl")
+    world = LaunchConfiguration("world")
+    world_name = LaunchConfiguration("world_name")
+    use_arm = LaunchConfiguration("use_arm")
+    e4_use_low_mesh = LaunchConfiguration("e4_use_low_mesh")
     default_rviz_config = PathJoinSubstitution([bringup_share, "config", "rviz", "mapping.rviz"])
 
     sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "sim.launch.py")),
         launch_arguments={
+            "world": world,
+            "world_name": world_name,
             "headless": headless,
             "sim_profile": sim_profile,
-            "use_sim_camera": use_sim_camera,
             "use_sim_tf": "true",
             "use_teleop": "true",
             "use_foxglove": use_foxglove,
             "use_rviz": use_rviz,
             "rviz_config": rviz_config,
             "rviz_software_gl": rviz_software_gl,
+            "use_arm": use_arm,
+            "e4_use_low_mesh": e4_use_low_mesh,
         }.items(),
     )
 
@@ -59,14 +65,26 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                "world",
+                default_value=PathJoinSubstitution([bringup_share, "worlds", "race_track.sdf"]),
+            ),
+            DeclareLaunchArgument(
+                "world_name",
+                default_value=PythonExpression(['"', LaunchConfiguration("world"), '".split("/")[-1].rsplit(".", 1)[0]']),
+            ),
             DeclareLaunchArgument("headless", default_value="false"),
             DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="true")),
             DeclareLaunchArgument("sim_profile", default_value=EnvironmentVariable("DUOJIN01_SIM_PROFILE", default_value="gpu")),
-            DeclareLaunchArgument(
-                "use_sim_camera",
-                default_value=EnvironmentVariable("DUOJIN01_SIM_CAMERA_ENABLED", default_value="false"),
-            ),
             SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
+            DeclareLaunchArgument(
+                "use_arm",
+                default_value=EnvironmentVariable("DUOJIN01_WITH_ARM", default_value="false"),
+            ),
+            DeclareLaunchArgument(
+                "e4_use_low_mesh",
+                default_value=EnvironmentVariable("DUOJIN01_E4_USE_LOW_MESH", default_value="true"),
+            ),
             DeclareLaunchArgument("use_rviz", default_value="true"),
             DeclareLaunchArgument("use_foxglove", default_value="false"),
             DeclareLaunchArgument(

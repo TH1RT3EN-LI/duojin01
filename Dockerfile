@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # 强制 rosdep 用 USTC rosdistro index（比写 bashrc 更稳定）
 ENV ROSDISTRO_INDEX_URL=https://mirrors.ustc.edu.cn/rosdistro/index-v4.yaml
 ARG INSTALL_RUNTIME_DEPS=1
-ARG ROSDEP_DEP_TYPES="buildtool build build_export buildtool_export"
+ARG ROSDEP_DEP_TYPES="buildtool build build_export buildtool_export exec"
 # 0) Ubuntu apt 源切到 USTC（jammy=22.04）
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu|https://mirrors.ustc.edu.cn/ubuntu|g' /etc/apt/sources.list && \
     sed -i 's|http://security.ubuntu.com/ubuntu|https://mirrors.ustc.edu.cn/ubuntu|g' /etc/apt/sources.list

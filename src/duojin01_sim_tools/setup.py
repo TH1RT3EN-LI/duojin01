@@ -25,7 +25,11 @@ setup(
             "odom_to_tf_node = duojin01_sim_tools.odom_to_tf_node:main",
             "initial_pose_publisher = duojin01_sim_tools.initial_pose_publisher:main",
             "clock_guard_node = duojin01_sim_tools.clock_guard_node:main",
-            "orbbec_topic_compat_node = duojin01_sim_tools.orbbec_topic_compat_node:main",
+            "sim_camera_topic_compat_node = duojin01_sim_tools.sim_camera_topic_compat_node:main",
+            "sim_mono_camera_compat_node = duojin01_sim_tools.sim_mono_camera_compat_node:main",
+            "e4_joint_test_bridge_node = duojin01_sim_tools.e4_joint_test_bridge_node:main",
+            "e4_joint_test_cli = duojin01_sim_tools.e4_joint_test_cli:main",
+            "e4_gcode_adapter_node = duojin01_sim_tools.e4_gcode_adapter_node:main",
         ],
     },
 )

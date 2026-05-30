@@ -308,8 +308,5 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        try:
-            if rclpy.ok():
-                rclpy.shutdown()
-        except Exception:
-            pass
+        if rclpy.ok():
+            rclpy.shutdown()

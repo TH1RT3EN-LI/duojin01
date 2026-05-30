@@ -1,8 +1,21 @@
 from setuptools import setup
-from glob import glob
 import os
 
 package_name = 'duojin01_description'
+
+
+def collect_data_files(relative_dir):
+    data_files = []
+
+    for root, _, files in os.walk(relative_dir):
+        if not files:
+            continue
+
+        install_dir = os.path.join('share', package_name, root)
+        file_paths = [os.path.join(root, filename) for filename in sorted(files)]
+        data_files.append((install_dir, file_paths))
+
+    return data_files
 
 setup(
     name=package_name,
@@ -12,11 +25,7 @@ setup(
         ('share/ament_index/resource_index/packages',
          ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-
-        (os.path.join('share', package_name, 'urdf'), glob('urdf/*.xacro')),
-        (os.path.join('share', package_name, 'urdf', 'sensors'), glob('urdf/sensors/*.xacro')),
-        (os.path.join('share', package_name, 'meshes'), glob('meshes/*')),
-    ],
+    ] + collect_data_files('urdf') + collect_data_files('meshes') + collect_data_files('models'),
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='litianshun',

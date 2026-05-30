@@ -2,18 +2,115 @@
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <chrono>
 #include <cctype>
+#include <cmath>
+#include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 
+#include "nav_msgs/srv/get_map.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "slam_toolbox/srv/save_map.hpp"
 
 namespace
 {
 
 namespace fs = std::filesystem;
 using namespace std::chrono_literals;
+
+double quaternion_to_yaw(const geometry_msgs::msg::Quaternion & q)
+{
+  const double siny_cosp = 2.0 * (q.w * q.z + q.x * q.y);
+  const double cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+  return std::atan2(siny_cosp, cosy_cosp);
+}
+
+std::uint8_t occupancy_to_pgm_value(
+  const int8_t occupancy,
+  const double free_thresh,
+  const double occupied_thresh)
+{
+  if (occupancy < 0) {
+    return 205;
+  }
+
+  const double value = static_cast<double>(occupancy) / 100.0;
+  if (value >= occupied_thresh) {
+    return 0;
+  }
+  if (value <= free_thresh) {
+    return 254;
+  }
+
+  return 205;
+}
+
+void write_pgm(
+  const fs::path & image_path,
+  const nav_msgs::msg::OccupancyGrid & map,
+  const double free_thresh,
+  const double occupied_thresh)
+{
+  std::ofstream out(image_path, std::ios::binary | std::ios::trunc);
+  if (!out) {
+    throw std::runtime_error("failed to open image for writing: " + image_path.string());
+  }
+
+  const auto width = map.info.width;
+  const auto height = map.info.height;
+  out << "P5\n";
+  out << "# CREATOR: duojin01_slam_tools\n";
+  out << width << " " << height << "\n255\n";
+
+  for (int y = static_cast<int>(height) - 1; y >= 0; --y) {
+    for (std::uint32_t x = 0; x < width; ++x) {
+      const auto index = static_cast<std::size_t>(y) * width + x;
+      const auto pixel = occupancy_to_pgm_value(map.data[index], free_thresh, occupied_thresh);
+      out.write(reinterpret_cast<const char *>(&pixel), sizeof(pixel));
+    }
+  }
+}
+
+void write_yaml(
+  const fs::path & yaml_path,
+  const fs::path & image_path,
+  const nav_msgs::msg::OccupancyGrid & map,
+  const double free_thresh,
+  const double occupied_thresh)
+{
+  std::ofstream out(yaml_path, std::ios::trunc);
+  if (!out) {
+    throw std::runtime_error("failed to open yaml for writing: " + yaml_path.string());
+  }
+
+  const auto & origin = map.info.origin;
+  out << "image: " << image_path.filename().string() << "\n";
+  out << "mode: trinary\n";
+  out << "resolution: " << map.info.resolution << "\n";
+  out << "origin: [" << origin.position.x << ", " << origin.position.y << ", "
+      << quaternion_to_yaw(origin.orientation) << "]\n";
+  out << "negate: 0\n";
+  out << "occupied_thresh: " << occupied_thresh << "\n";
+  out << "free_thresh: " << free_thresh << "\n";
+}
+
+void save_map_files(
+  const std::string & prefix,
+  const nav_msgs::msg::OccupancyGrid & map,
+  const double free_thresh,
+  const double occupied_thresh)
+{
+  if (map.info.width == 0 || map.info.height == 0 || map.data.empty()) {
+    throw std::runtime_error("received empty map from /slam_toolbox/dynamic_map");
+  }
+
+  const fs::path prefix_path(prefix);
+  const fs::path image_path = prefix_path;
+  const fs::path yaml_path = prefix_path;
+
+  write_pgm(image_path.string() + ".pgm", map, free_thresh, occupied_thresh);
+  write_yaml(yaml_path.string() + ".yaml", image_path.string() + ".pgm", map, free_thresh, occupied_thresh);
+}
 
 fs::path resolve_workspace_root()
 {
@@ -102,6 +199,8 @@ public:
     const std::string map_name_arg = this->declare_parameter<std::string>("map_name", "auto");
     const std::string output_dir_arg = this->declare_parameter<std::string>("output_dir", "maps");
     wait_timeout_sec_ = this->declare_parameter<double>("wait_timeout", 30.0);
+    free_thresh_ = this->declare_parameter<double>("free_thresh", 0.25);
+    occupied_thresh_ = this->declare_parameter<double>("occupied_thresh", 0.65);
 
     output_dir_ = resolve_output_dir(output_dir_arg);
 
@@ -112,7 +211,7 @@ public:
 
     fs::create_directories(output_dir_);
     prefix_ = (fs::path(output_dir_) / map_name_).string();
-    client_ = this->create_client<slam_toolbox::srv::SaveMap>("/slam_toolbox/save_map");
+    client_ = this->create_client<nav_msgs::srv::GetMap>("/slam_toolbox/dynamic_map");
   }
 
   int run()
@@ -121,10 +220,9 @@ public:
       return 1;
     }
 
-    RCLCPP_INFO(this->get_logger(), "[save_map] saving to %s.pgm/.yaml", prefix_.c_str());
+    RCLCPP_INFO(this->get_logger(), "[save_map] fetching /slam_toolbox/dynamic_map and saving to %s.pgm/.yaml", prefix_.c_str());
 
-    auto request = std::make_shared<slam_toolbox::srv::SaveMap::Request>();
-    request->name.data = prefix_;
+    auto request = std::make_shared<nav_msgs::srv::GetMap::Request>();
     auto future = client_->async_send_request(request);
 
     auto executor = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
@@ -150,25 +248,20 @@ public:
     }
 
     if (!future.valid()) {
-      RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: save_map service returned an invalid future");
+      RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: dynamic_map service returned an invalid future");
       return 1;
     }
 
     const auto response = future.get();
     if (!response) {
-      RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: save_map service returned no response");
+      RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: dynamic_map service returned no response");
       return 1;
     }
 
-    if (response->result != slam_toolbox::srv::SaveMap::Response::RESULT_SUCCESS) {
-      if (response->result == slam_toolbox::srv::SaveMap::Response::RESULT_NO_MAP_RECEIEVD) {
-        RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: slam_toolbox has not received a map yet");
-      } else {
-        RCLCPP_ERROR(
-          this->get_logger(),
-          "[save_map] ERROR: slam_toolbox save_map failed with result %u",
-          static_cast<unsigned int>(response->result));
-      }
+    try {
+      save_map_files(prefix_, response->map, free_thresh_, occupied_thresh_);
+    } catch (const std::exception & exception) {
+      RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: %s", exception.what());
       return 1;
     }
 
@@ -182,10 +275,10 @@ private:
     if (wait_timeout_sec_ > 0.0) {
       RCLCPP_INFO(
         this->get_logger(),
-        "[save_map] waiting for /slam_toolbox/save_map ... (timeout=%gs)",
+        "[save_map] waiting for /slam_toolbox/dynamic_map ... (timeout=%gs)",
         wait_timeout_sec_);
     } else {
-      RCLCPP_INFO(this->get_logger(), "[save_map] waiting for /slam_toolbox/save_map ...");
+      RCLCPP_INFO(this->get_logger(), "[save_map] waiting for /slam_toolbox/dynamic_map ...");
     }
 
     const auto start = std::chrono::steady_clock::now();
@@ -197,13 +290,13 @@ private:
       if (wait_timeout_sec_ > 0.0) {
         const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start);
         if (elapsed.count() >= wait_timeout_sec_) {
-          RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: timeout waiting for /slam_toolbox/save_map");
+          RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: timeout waiting for /slam_toolbox/dynamic_map");
           return false;
         }
       }
     }
 
-    RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: interrupted while waiting for /slam_toolbox/save_map");
+    RCLCPP_ERROR(this->get_logger(), "[save_map] ERROR: interrupted while waiting for /slam_toolbox/dynamic_map");
     return false;
   }
 
@@ -211,7 +304,9 @@ private:
   std::string map_name_;
   std::string prefix_;
   double wait_timeout_sec_{30.0};
-  rclcpp::Client<slam_toolbox::srv::SaveMap>::SharedPtr client_;
+  double free_thresh_{0.25};
+  double occupied_thresh_{0.65};
+  rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr client_;
 };
 
 }  // namespace

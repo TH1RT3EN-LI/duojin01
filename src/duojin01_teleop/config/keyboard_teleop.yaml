@@ -4,12 +4,17 @@ keyboard_teleop_node:
     stamped: false
     frame_id: ''
     speed: 0.3
-    turn: 0.3
+    turn: 0.6
     max_speed: 0.6
-    max_turn: 0.6
+    max_turn: 1.2
     speed_step: 0.05
     turn_step: 0.1
     publish_rate: 120.0
     repeat_timeout_sec: 0.50
     read_poll_timeout: 0.02
     tty_device_path: ''
+    keyboard_backend: 'tty'
+    event_device_path: ''
+    save_map_key: 'm'
+    save_map_command: 'ros2 launch duojin01_bringup save_map.launch.py'
+    save_map_cooldown_sec: 2.0

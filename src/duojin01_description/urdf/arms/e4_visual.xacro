@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+<robot name="duojin01_e4_visual_arm" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:property name="duojin01_e4_part4_xyz" value="$(optenv DUOJIN01_E4_PART4_XYZ 0.155 0.16 0)" />
+  <xacro:property name="duojin01_e4_part4_rpy" value="$(optenv DUOJIN01_E4_PART4_RPY 1.5708 0 -4.015)" />
+  <xacro:property name="duojin01_e4_suction_cup_xyz" value="$(optenv DUOJIN01_E4_SUCTION_CUP_XYZ 0.055 -0.002 0)" />
+  <xacro:property name="duojin01_e4_suction_cup_rpy" value="$(optenv DUOJIN01_E4_SUCTION_CUP_RPY 0 -1.5708 0)" />
+  <xacro:property name="duojin01_e4_use_low_mesh" value="$(optenv DUOJIN01_E4_USE_LOW_MESH false)" />
+  <xacro:property
+    name="duojin01_e4_mesh_suffix"
+    value="${'_low' if (str(duojin01_e4_use_low_mesh).lower() == 'true' or str(duojin01_e4_use_low_mesh) == '1') else ''}" />
+
+  <xacro:macro name="visual_only_inertial" params="mass:=0.001">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="${mass}" />
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="e4_visual_arm">
+    <!--
+      The E4 STEP export was split into five DAE meshes that already appear to
+      share a common assembly coordinate frame. For the visual-only stage we
+      keep them as fixed visuals and avoid inventing joint frames too early.
+    -->
+    <link name="arm_base_link">
+      <xacro:visual_only_inertial />
+    </link>
+
+    <link name="arm_visual_part1">
+      <xacro:visual_only_inertial />
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/1${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+    </link>
+
+    <joint name="arm_visual_part1_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <parent link="arm_base_link" />
+      <child link="arm_visual_part1" />
+    </joint>
+
+    <link name="arm_visual_part2">
+      <xacro:visual_only_inertial />
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/2${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+    </link>
+
+    <joint name="arm_visual_part2_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <parent link="arm_base_link" />
+      <child link="arm_visual_part2" />
+    </joint>
+
+    <link name="arm_visual_part3">
+      <xacro:visual_only_inertial />
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/3${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+    </link>
+
+    <joint name="arm_visual_part3_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <parent link="arm_base_link" />
+      <child link="arm_visual_part3" />
+    </joint>
+
+    <link name="arm_visual_part4">
+      <xacro:visual_only_inertial />
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/4${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+    </link>
+
+    <joint name="arm_visual_part4_joint" type="fixed">
+      <origin xyz="${duojin01_e4_part4_xyz}" rpy="${duojin01_e4_part4_rpy}" />
+      <parent link="arm_base_link" />
+      <child link="arm_visual_part4" />
+    </joint>
+
+    <link name="arm_visual_part5">
+      <xacro:visual_only_inertial />
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/5${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+      <visual>
+        <origin xyz="${duojin01_e4_suction_cup_xyz}" rpy="${duojin01_e4_suction_cup_rpy}" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/suction_cup.stl" />
+        </geometry>
+        <material name="e4_visual_suction_rubber">
+          <color rgba="0.05 0.05 0.05 1.0" />
+        </material>
+      </visual>
+    </link>
+
+    <joint name="arm_visual_part5_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <parent link="arm_base_link" />
+      <child link="arm_visual_part5" />
+    </joint>
+  </xacro:macro>
+</robot>

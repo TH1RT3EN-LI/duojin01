@@ -11,6 +11,15 @@
   <xacro:property name="sim_camera_height" value="$(optenv DUOJIN01_SIM_CAMERA_HEIGHT 480)" />
   <xacro:property name="sim_camera_near_clip" value="$(optenv DUOJIN01_SIM_CAMERA_NEAR_CLIP 0.1)" />
   <xacro:property name="sim_camera_far_clip" value="$(optenv DUOJIN01_SIM_CAMERA_FAR_CLIP 10.0)" />
+  <xacro:property name="sim_arm_mono_camera_enabled" value="$(optenv DUOJIN01_SIM_ARM_MONO_CAMERA_ENABLED true)" />
+  <xacro:property name="sim_arm_mono_camera_update_rate" value="$(optenv DUOJIN01_SIM_ARM_MONO_CAMERA_UPDATE_RATE 30)" />
+  <xacro:property name="sim_arm_mono_camera_hfov" value="$(optenv DUOJIN01_SIM_ARM_MONO_CAMERA_HFOV 1.5707)" />
+  <xacro:property name="sim_arm_mono_camera_width" value="$(optenv DUOJIN01_SIM_ARM_MONO_CAMERA_WIDTH 1280)" />
+  <xacro:property name="sim_arm_mono_camera_height" value="$(optenv DUOJIN01_SIM_ARM_MONO_CAMERA_HEIGHT 720)" />
+  <xacro:property name="sim_arm_mono_camera_near_clip" value="$(optenv DUOJIN01_SIM_ARM_MONO_CAMERA_NEAR_CLIP 0.05)" />
+  <xacro:property name="sim_arm_mono_camera_far_clip" value="$(optenv DUOJIN01_SIM_ARM_MONO_CAMERA_FAR_CLIP 20.0)" />
+  <xacro:property name="sim_with_arm" value="$(optenv DUOJIN01_WITH_ARM false)" />
+  <xacro:property name="sim_arm_variant" value="$(optenv DUOJIN01_ARM_VARIANT e4_kinematic)" />
 
   <xacro:include filename="duojin01_shared.xacro" />
   <xacro:include filename="sensors/camera.xacro" />
@@ -35,6 +44,10 @@
 
   <gazebo reference="base_link">
     <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="computer_tray">
+    <material>Gazebo/White</material>
   </gazebo>
 
   <xacro:sim_wheel_friction wheel_link="upper_left_wheel" mu1="${wheel_mu1}" mu2="${wheel_mu2}" />
@@ -72,6 +85,39 @@
     </sensor>
   </gazebo>
 
+  <xacro:if value="${(str(sim_with_arm).lower() == 'true' or str(sim_with_arm) == '1') and str(sim_arm_variant) == 'e4_kinematic'}">
+    <gazebo reference="arm_link1">
+      <gravity>false</gravity>
+    </gazebo>
+
+    <gazebo reference="arm_link2">
+      <gravity>false</gravity>
+    </gazebo>
+
+    <gazebo reference="arm_link3">
+      <gravity>false</gravity>
+    </gazebo>
+
+    <gazebo reference="arm_link4">
+      <gravity>false</gravity>
+    </gazebo>
+
+    <gazebo reference="arm_tool_link">
+      <gravity>false</gravity>
+      <preserveFixedJoint>true</preserveFixedJoint>
+    </gazebo>
+
+    <gazebo reference="arm_suction_link">
+      <gravity>false</gravity>
+      <preserveFixedJoint>true</preserveFixedJoint>
+      <material>Gazebo/Black</material>
+    </gazebo>
+
+    <gazebo reference="arm_mono_camera_link">
+      <material>Gazebo/Grey</material>
+    </gazebo>
+  </xacro:if>
+
   <xacro:if value="${str(sim_camera_enabled).lower() == 'true' or str(sim_camera_enabled) == '1'}">
     <xacro:rgbd_camera_sensor
       reference_link="depth_cam"
@@ -83,6 +129,20 @@
       height="${sim_camera_height}"
       near_clip="${sim_camera_near_clip}"
       far_clip="${sim_camera_far_clip}"
+      visualize="false" />
+  </xacro:if>
+
+  <xacro:if value="${(str(sim_with_arm).lower() == 'true' or str(sim_with_arm) == '1') and str(sim_arm_variant) == 'e4_kinematic' and (str(sim_arm_mono_camera_enabled).lower() == 'true' or str(sim_arm_mono_camera_enabled) == '1')}">
+    <xacro:mono_camera_sensor
+      reference_link="arm_mono_camera_link"
+      sensor_name="arm_mono_camera"
+      topic="/arm_mono_camera"
+      update_rate="${sim_arm_mono_camera_update_rate}"
+      hfov="${sim_arm_mono_camera_hfov}"
+      width="${sim_arm_mono_camera_width}"
+      height="${sim_arm_mono_camera_height}"
+      near_clip="${sim_arm_mono_camera_near_clip}"
+      far_clip="${sim_arm_mono_camera_far_clip}"
       visualize="false" />
   </xacro:if>
 
@@ -123,6 +183,88 @@
       name="gz::sim::systems::JointStatePublisher">
       <topic>/joint_states</topic>
     </plugin>
+
+    <xacro:if value="${(str(sim_with_arm).lower() == 'true' or str(sim_with_arm) == '1') and str(sim_arm_variant) == 'e4_kinematic'}">
+      <!--
+        Drive the E4 chain through a single multi-joint trajectory controller.
+        The ROS-side test bridge keeps the latest target vector and republishes
+        a full trajectory whenever one joint is updated.
+      -->
+      <plugin filename="gz-sim-joint-trajectory-controller-system"
+        name="gz::sim::systems::JointTrajectoryController">
+        <topic>/e4_joint_trajectory</topic>
+
+        <joint_name>arm_joint1</joint_name>
+        <initial_position>0.0</initial_position>
+        <position_p_gain>3.5</position_p_gain>
+        <position_i_gain>0.03</position_i_gain>
+        <position_d_gain>0.25</position_d_gain>
+        <position_i_min>-0.5</position_i_min>
+        <position_i_max>0.5</position_i_max>
+        <position_cmd_min>-1.2</position_cmd_min>
+        <position_cmd_max>1.2</position_cmd_max>
+
+        <joint_name>arm_joint2</joint_name>
+        <initial_position>0.0</initial_position>
+        <position_p_gain>3.6</position_p_gain>
+        <position_i_gain>0.02</position_i_gain>
+        <position_d_gain>0.32</position_d_gain>
+        <position_i_min>-0.4</position_i_min>
+        <position_i_max>0.4</position_i_max>
+        <position_cmd_min>-1.0</position_cmd_min>
+        <position_cmd_max>1.0</position_cmd_max>
+
+        <joint_name>arm_joint3</joint_name>
+        <initial_position>0.0</initial_position>
+        <position_p_gain>3.6</position_p_gain>
+        <position_i_gain>0.02</position_i_gain>
+        <position_d_gain>0.32</position_d_gain>
+        <position_i_min>-0.4</position_i_min>
+        <position_i_max>0.4</position_i_max>
+        <position_cmd_min>-1.0</position_cmd_min>
+        <position_cmd_max>1.0</position_cmd_max>
+
+        <joint_name>arm_joint4</joint_name>
+        <initial_position>0.0</initial_position>
+        <position_p_gain>2.4</position_p_gain>
+        <position_i_gain>0.01</position_i_gain>
+        <position_d_gain>0.20</position_d_gain>
+        <position_i_min>-0.2</position_i_min>
+        <position_i_max>0.2</position_i_max>
+        <position_cmd_min>-0.8</position_cmd_min>
+        <position_cmd_max>0.8</position_cmd_max>
+      </plugin>
+
+      <plugin filename="libduojin01_suction_carry_system.so"
+        name="duojin01::gz_plugins::SuctionCarrySystem">
+        <suction_link>arm_link4</suction_link>
+        <suction_offset_xyz>0.055 -0.0315 0.0</suction_offset_xyz>
+        <suction_offset_rpy>-1.5708 0 0</suction_offset_rpy>
+        <command_topic>/duojin01/suction_enable</command_topic>
+        <attachable_model_prefix>tag_cube_</attachable_model_prefix>
+        <surface_offset_z>0.015</surface_offset_z>
+        <pickup_radius_xy>0.018</pickup_radius_xy>
+        <pickup_window_z>0.010</pickup_window_z>
+        <max_relative_speed>0.10</max_relative_speed>
+        <release_clearance>0.005</release_clearance>
+        <!--
+          arm_suction_collision is currently a solid cylinder starting at the
+          suction contact plane and extending +34.5 mm along arm_suction_link +Z.
+          Release needs to place the carried object outside that occupied volume,
+          otherwise the cube is still interpenetrating the suction collision
+          after detach and will show non-physical slow / sticky falling.
+        -->
+        <suction_collision_positive_extent_z>0.0345</suction_collision_positive_extent_z>
+        <suction_collision_negative_extent_z>0.0</suction_collision_negative_extent_z>
+        <hold_recess>0.004</hold_recess>
+        <bag_model_prefix>rack03_chips_bag_</bag_model_prefix>
+        <bag_surface_offset_z>0.090</bag_surface_offset_z>
+        <bag_pickup_radius_xy>0.070</bag_pickup_radius_xy>
+        <bag_pickup_window_z>0.020</bag_pickup_window_z>
+        <bag_hold_recess>0.010</bag_hold_recess>
+        <one_cube_only>true</one_cube_only>
+      </plugin>
+    </xacro:if>
   </gazebo>
 
 </robot>

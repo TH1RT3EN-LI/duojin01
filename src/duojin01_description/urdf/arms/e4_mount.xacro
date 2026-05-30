@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<robot name="duojin01_e4_mount" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find duojin01_description)/urdf/arms/e4_visual.xacro" />
+  <xacro:include filename="$(find duojin01_description)/urdf/arms/e4_kinematic.xacro" />
+  <xacro:property name="duojin01_arm_variant" value="$(optenv DUOJIN01_ARM_VARIANT e4_kinematic)" />
+
+  <!-- Low-poly Collada exports lose embedded materials, so RViz needs a fallback. -->
+  <material name="e4_mesh_gray">
+    <color rgba="0.4470588266849518 0.4745098054409027 0.501960813999176 1.0" />
+  </material>
+
+  <xacro:macro name="duojin01_e4_mount" params="parent mount_xyz:='-0.13 -0.04 0.155' mount_rpy:='1.5708 0 0'">
+    <xacro:if value="${str(duojin01_arm_variant) == 'e4_visual'}">
+      <xacro:e4_visual_arm />
+    </xacro:if>
+
+    <xacro:unless value="${str(duojin01_arm_variant) == 'e4_visual'}">
+      <xacro:e4_kinematic_arm />
+    </xacro:unless>
+
+    <joint name="arm_mount_joint" type="fixed">
+      <origin xyz="${mount_xyz}" rpy="${mount_rpy}" />
+      <parent link="${parent}" />
+      <child link="arm_base_link" />
+    </joint>
+  </xacro:macro>
+</robot>

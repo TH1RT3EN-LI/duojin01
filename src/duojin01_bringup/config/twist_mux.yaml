@@ -7,6 +7,11 @@ twist_mux:
         timeout: 0.5
         priority: 80
 
+      keyboard:
+        topic: /cmd_vel_keyboard
+        timeout: 0.1
+        priority: 90
+
       estop:
         topic: /cmd_vel_estop
         timeout: 0.1
@@ -21,9 +26,3 @@ twist_mux:
         topic: /cmd_vel_slow
         timeout: 0.01
         priority: 50
-
-    locks:
-      safety_watchdog:
-        topic: /watchdog/lock
-        timeout: 0.0          
-        priority: 255

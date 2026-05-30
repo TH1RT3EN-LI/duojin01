@@ -1,0 +1,2 @@
+src/duojin01_description/meshes/e4/*.dae filter=lfs diff=lfs merge=lfs -text
+src/duojin01_description/meshes/e4/*.STEP filter=lfs diff=lfs merge=lfs -text

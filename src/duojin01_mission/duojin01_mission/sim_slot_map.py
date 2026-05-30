@@ -9,6 +9,7 @@ from ament_index_python.packages import get_package_share_directory
 
 
 SLOT_NAV_X_OFFSET_M = 0.70
+SLOT_NAV_Y_OFFSET_M = 0.21
 RIGHT_ROW_CUBES = tuple(f"tag_cube_{index}" for index in range(13, 19))
 LEFT_ROW_CUBES = tuple(f"tag_cube_{index}" for index in range(19, 25))
 EXPECTED_CUBE_NAMES = RIGHT_ROW_CUBES + LEFT_ROW_CUBES
@@ -56,10 +57,11 @@ def default_slot_world_path() -> Path:
 def build_slot_waypoints(
     cube_positions: Mapping[str, tuple[float, float]],
     nav_x_offset_m: float = SLOT_NAV_X_OFFSET_M,
+    nav_y_offset_m: float = SLOT_NAV_Y_OFFSET_M,
 ) -> Dict[str, SlotWaypoint]:
     waypoints: Dict[str, SlotWaypoint] = {}
 
-    for prefix, cube_names in (("B", RIGHT_ROW_CUBES), ("C", LEFT_ROW_CUBES)):
+    for prefix, cube_names in (("B", LEFT_ROW_CUBES), ("C", RIGHT_ROW_CUBES)):
         ordered = sorted(
             (
                 (cube_name, cube_positions[cube_name][0], cube_positions[cube_name][1])
@@ -69,14 +71,14 @@ def build_slot_waypoints(
         )
 
         for index, (cube_name, cube_x, cube_y) in enumerate(ordered, start=1):
-            slot_id = f"{prefix}{index}"
+            slot_id = f"{prefix}{len(ordered) - index + 1}"
             waypoints[slot_id] = SlotWaypoint(
                 slot_id=slot_id,
                 cube_name=cube_name,
                 cube_x=cube_x,
                 cube_y=cube_y,
                 nav_x=cube_x - nav_x_offset_m,
-                nav_y=cube_y,
+                nav_y=cube_y + nav_y_offset_m,
             )
 
     return waypoints

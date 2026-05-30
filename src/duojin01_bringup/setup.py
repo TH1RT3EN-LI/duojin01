@@ -17,15 +17,18 @@ setup(
 
         (os.path.join('share', package_name, 'config'),
             glob('config/*.yaml')),
-        
+
         (os.path.join('share', package_name, 'config', 'rviz'),
             glob('config/rviz/*.rviz')),
         
         (os.path.join('share', package_name, 'config', 'foxglove'),
             glob('config/foxglove/*.yaml') + glob('config/foxglove/*.json')),
 
+        (os.path.join('share', package_name, 'config', 'lattice_primitives'),
+            glob('config/lattice_primitives/*.json') + glob('config/lattice_primitives/*.md')),
+
         (os.path.join('share', package_name, 'worlds'),
-            glob('worlds/*.sdf')),
+            glob('worlds/*')),
 
         (os.path.join('share', package_name, 'maps'),
             glob('maps/*')),

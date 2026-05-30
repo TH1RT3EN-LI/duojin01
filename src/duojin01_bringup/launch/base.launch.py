@@ -2,13 +2,12 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, SetEnvironmentVariable
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
-
 
 def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
@@ -19,20 +18,18 @@ def generate_launch_description():
     odom0 = LaunchConfiguration("odom0")
     imu0 = LaunchConfiguration("imu0")
 
-
     bringup_share = get_package_share_directory("duojin01_bringup")
     description_share = get_package_share_directory("duojin01_description")
+    lslidar_share = get_package_share_directory("lslidar_driver")
     use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
 
     ekf_config_path = os.path.join(bringup_share, "config", "ekf.yaml")
     foxglove_bridge_config_path = os.path.join(bringup_share, "config", "foxglove", "bridge.yaml")
-    watchdog_share = get_package_share_directory("duojin01_safety_watchdog")
-    watchdog_config_path = os.path.join(watchdog_share, "config", "safety_watchdog.yaml")
+    lslidar_params_path = os.path.join(lslidar_share, "params", "lsx10.yaml")
     twist_mux_config_path = os.path.join(bringup_share, "config", "twist_mux.yaml")
 
     urdf_file = os.path.join(description_share, "urdf", "duojin01.xacro")
     robot_description = ParameterValue(Command(["xacro", " ", urdf_file]), value_type=str)
-
 
     joint_state_publisher = Node(
         package="joint_state_publisher",
@@ -65,7 +62,6 @@ def generate_launch_description():
         ],
     )
 
-
     foxglove_bridge = Node(
         package="foxglove_bridge",
         executable="foxglove_bridge",
@@ -87,14 +83,18 @@ def generate_launch_description():
     lslidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory("lslidar_driver"),
+                lslidar_share,
                 "launch",
                 "lslidar_launch.py",
             )
         ),
+        launch_arguments={
+            "params_file": lslidar_params_path,
+            "scan_topic": "/scan",
+        }.items(),
         condition=IfCondition(use_lidar),
     )
-    
+
     twist_mux_node = Node(
             package="twist_mux",
             executable="twist_mux",
@@ -113,17 +113,6 @@ def generate_launch_description():
             remappings=[("/cmd_vel", "/cmd_vel_safe")],
         )
 
-    safety_watchdog_node = Node(
-            package="duojin01_safety_watchdog",
-            executable="safety_watchdog_node",
-            name="safety_watchdog",
-            output="screen",
-            parameters=[
-                watchdog_config_path,
-                {"use_sim_time": use_sim_time_param},
-            ],
-        )
-
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="false")),
@@ -134,14 +123,10 @@ def generate_launch_description():
             DeclareLaunchArgument("imu0", default_value="/imu"),
             DeclareLaunchArgument("publish_robot_model", default_value="true"),
             DeclareLaunchArgument("publish_joint_states", default_value="true"),
-            twist_mux_node,
-            base_driver_node,
-            safety_watchdog_node,
-            joint_state_publisher,
-            robot_state_publisher,
-            ekf_node,
-            foxglove_bridge,
+            GroupAction(scoped=True, actions=[joint_state_publisher, robot_state_publisher, ekf_node, lslidar_launch]),
+            GroupAction(scoped=True, actions=[twist_mux_node]),
+            GroupAction(scoped=True, actions=[base_driver_node]),
+            GroupAction(scoped=True, actions=[foxglove_bridge]),
             joy_teleop_launch,
-            lslidar_launch,
         ]
     )

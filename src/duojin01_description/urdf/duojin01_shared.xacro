@@ -3,6 +3,11 @@
   <xacro:property name="PI" value="3.1415926535897931" />
   <xacro:property name="wheel_radius" value="0.050" />
   <xacro:property name="wheel_width" value="0.0505" />
+  <xacro:property name="duojin01_with_arm" value="$(optenv DUOJIN01_WITH_ARM false)" />
+  <xacro:property name="duojin01_arm_mount_xyz" value="$(optenv DUOJIN01_ARM_MOUNT_XYZ -0.13 -0.04 0.155)" />
+  <xacro:property name="duojin01_arm_mount_rpy" value="$(optenv DUOJIN01_ARM_MOUNT_RPY 1.5708 0 0)" />
+
+  <xacro:include filename="arms/e4_mount.xacro" />
 
   <xacro:macro name="box_inertial" params="m x y z">
     <inertial>
@@ -200,8 +205,77 @@
       <xacro:box_inertial m="0.5" x="0.13" y="0.13" z="0.05" />
     </link>
 
+    <link name="computer_tray">
+      <visual>
+        <origin xyz="0 0 0.025" rpy="0 0 0" />
+        <geometry>
+          <box size="0.13 0.13 0.005" />
+        </geometry>
+        <material name="white" />
+      </visual>
+
+      <visual>
+        <origin xyz="0 0.065 0.035" rpy="0 0 0" />
+        <geometry>
+          <box size="0.13 0.005 0.02" />
+        </geometry>
+        <material name="white" />
+      </visual>
+
+      <visual>
+        <origin xyz="0 -0.065 0.035" rpy="0 0 0" />
+        <geometry>
+          <box size="0.13 0.005 0.02" />
+        </geometry>
+        <material name="white" />
+      </visual>
+
+      <visual>
+        <origin xyz="0.065 0 0.035" rpy="0 0 0" />
+        <geometry>
+          <box size="0.005 0.13 0.02" />
+        </geometry>
+        <material name="white" />
+      </visual>
+
+      <visual>
+        <origin xyz="-0.065 0 0.035" rpy="0 0 0" />
+        <geometry>
+          <box size="0.005 0.13 0.02" />
+        </geometry>
+        <material name="white" />
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0.025" rpy="0 0 0" />
+        <geometry>
+          <box size="0.13 0.13 0.005" />
+        </geometry>
+      </collision>
+
+      <xacro:box_inertial m="0.1" x="0.13" y="0.13" z="0.04" />
+    </link>
+
+    <joint name="computer_tray_joint" type="fixed">
+      <origin xyz="0 0 0.005" rpy="0 0 0" />
+      <parent link="computer" />
+      <child link="computer_tray" />
+    </joint>
+
+    <gazebo reference="computer_tray">
+      <mu1>10.0</mu1>
+      <mu2>10.0</mu2>
+    </gazebo>
+
+    <xacro:if value="${str(duojin01_with_arm).lower() == 'true' or str(duojin01_with_arm) == '1'}">
+      <xacro:duojin01_e4_mount
+        parent="base_link"
+        mount_xyz="${duojin01_arm_mount_xyz}"
+        mount_rpy="${duojin01_arm_mount_rpy}" />
+    </xacro:if>
+
     <joint name="lidar_joint" type="fixed">
-      <origin xyz="0.1 0 0.11" rpy="0 0 0" />
+      <origin xyz="0.085 0 0.11" rpy="0 0 0" />
       <parent link="base_link" />
       <child link="laser" />
     </joint>

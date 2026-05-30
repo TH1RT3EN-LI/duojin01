@@ -1,0 +1,253 @@
+<?xml version="1.0"?>
+<robot name="duojin01_e4_kinematic_arm" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:property name="duojin01_e4_use_low_mesh" value="$(optenv DUOJIN01_E4_USE_LOW_MESH false)" />
+  <xacro:property
+    name="duojin01_e4_mesh_suffix"
+    value="${'_low' if (str(duojin01_e4_use_low_mesh).lower() == 'true' or str(duojin01_e4_use_low_mesh) == '1') else ''}" />
+
+  <xacro:macro
+    name="e4_link_inertial"
+    params="xyz:='0 0 0' mass:=0.1 ixx:=0.001 iyy:=0.001 izz:=0.001">
+    <inertial>
+      <origin xyz="${xyz}" rpy="0 0 0" />
+      <mass value="${mass}" />
+      <inertia ixx="${ixx}" ixy="0" ixz="0" iyy="${iyy}" iyz="0" izz="${izz}" />
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="e4_kinematic_arm">
+    <!--
+      Approximate 4-axis kinematic chain inferred from the E4 DAE assembly and
+      the user's joint description:
+      1: base
+      2: rotates about base Z
+      3: big arm
+      4: forearm
+      5: tool-side link
+
+      The meshes remain visual-first assets. Joint origins below are an initial
+      reverse-engineered estimate so the model becomes articulable without
+      breaking the currently validated assembly pose.
+    -->
+    <xacro:property name="joint1_x" value="0.000" />
+    <xacro:property name="joint1_y" value="0.058" />
+    <xacro:property name="joint2_x" value="0.025" />
+    <xacro:property name="joint2_y" value="0.133" />
+    <xacro:property name="joint3_x" value="0.0656" />
+    <xacro:property name="joint3_y" value="0.2667" />
+    <xacro:property name="joint4_x" value="0.155" />
+    <xacro:property name="joint4_y" value="0.160" />
+    <xacro:property name="ee_x" value="0.210" />
+    <xacro:property name="ee_y" value="0.158" />
+    <xacro:property name="ee_z" value="0.0" />
+    <xacro:property name="camera_mount_xyz" value="$(optenv DUOJIN01_ARM_MONO_CAMERA_XYZ 0.09 0.0 0.0)" />
+    <xacro:property name="camera_mount_rpy" value="$(optenv DUOJIN01_ARM_MONO_CAMERA_RPY -1.5708 0 -1.5708)" />
+    <xacro:property name="camera_mesh_scale" value="0.001 0.001 0.001" />
+    <xacro:property name="camera_visual_xyz" value="-0.0398 0.0001 0.0032" />
+    <xacro:property name="suction_cup_visual_x" value="${ee_x - joint4_x}" />
+    <xacro:property name="suction_cup_visual_y" value="${ee_y - joint4_y}" />
+    <xacro:property name="suction_cup_visual_z" value="${ee_z}" />
+    <xacro:property name="suction_cup_visual_r" value="-1.5708" />
+    <xacro:property name="suction_cup_visual_p" value="0.0" />
+    <xacro:property name="suction_cup_visual_yaw" value="0.0" />
+    <!--
+      The STL is not centered on the actual suction contact plane:
+      bbox ~= x/y +/-11 mm, z in [-29.5 mm, +5 mm].
+      We define arm_suction_link at the suction contact plane center so:
+        1. Gazebo suction plugin uses the correct pickup point
+        2. TF-based grasp geometry matches the visible tip
+        3. collision aligns with the rendered suction cup
+    -->
+    <xacro:property name="suction_cup_contact_to_mesh_origin_z" value="0.0295" />
+    <xacro:property name="suction_cup_mesh_length" value="0.0345" />
+    <xacro:property name="suction_cup_mesh_radius" value="0.0110" />
+    <xacro:property name="part4_visual_x" value="0.155" />
+    <xacro:property name="part4_visual_y" value="0.160" />
+    <xacro:property name="part4_visual_r" value="1.5708" />
+    <xacro:property name="part4_visual_p" value="0" />
+    <xacro:property name="part4_visual_yaw" value="-4.015" />
+
+    <link name="arm_base_link">
+      <xacro:e4_link_inertial mass="0.8" ixx="0.004" iyy="0.004" izz="0.006" />
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/1${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+    </link>
+
+    <link name="arm_link1">
+      <xacro:e4_link_inertial
+        xyz="${-joint1_x} ${-joint1_y} 0"
+        mass="0.30"
+        ixx="0.002"
+        iyy="0.002"
+        izz="0.0025" />
+      <visual>
+        <origin xyz="${-joint1_x} ${-joint1_y} 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/2${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+    </link>
+
+    <joint name="arm_joint1" type="continuous">
+      <origin xyz="${joint1_x} ${joint1_y} 0" rpy="0 0 0" />
+      <parent link="arm_base_link" />
+      <child link="arm_link1" />
+      <!--
+        The whole E4 assembly is mounted with an extra +90 deg roll about X.
+        Using local +Y here keeps joint1 parallel to Gazebo world +Z.
+      -->
+      <axis xyz="0 1 0" />
+      <dynamics damping="2.0" friction="0.02" />
+      <limit effort="25.0" velocity="1.2" />
+    </joint>
+
+    <link name="arm_link2">
+      <xacro:e4_link_inertial
+        xyz="${-joint2_x} ${-joint2_y} 0"
+        mass="0.35"
+        ixx="0.003"
+        iyy="0.003"
+        izz="0.0035" />
+      <visual>
+        <origin xyz="${-joint2_x} ${-joint2_y} 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/3${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+    </link>
+
+    <joint name="arm_joint2" type="revolute">
+      <origin xyz="${joint2_x - joint1_x} ${joint2_y - joint1_y} 0" rpy="0 0 0" />
+      <parent link="arm_link1" />
+      <child link="arm_link2" />
+      <axis xyz="0 0 1" />
+      <dynamics damping="2.5" friction="0.03" />
+      <limit lower="-3.1416" upper="3.1416" effort="20.0" velocity="1.0" />
+    </joint>
+
+    <link name="arm_link3">
+      <xacro:e4_link_inertial
+        xyz="${part4_visual_x - joint3_x} ${part4_visual_y - joint3_y} 0"
+        mass="0.25"
+        ixx="0.002"
+        iyy="0.002"
+        izz="0.0025" />
+      <visual>
+        <origin
+          xyz="${part4_visual_x - joint3_x} ${part4_visual_y - joint3_y} 0"
+          rpy="${part4_visual_r} ${part4_visual_p} ${part4_visual_yaw}" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/4${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+    </link>
+
+    <joint name="arm_joint3" type="revolute">
+      <origin xyz="${joint3_x - joint2_x} ${joint3_y - joint2_y} 0" rpy="0 0 0" />
+      <parent link="arm_link2" />
+      <child link="arm_link3" />
+      <axis xyz="0 0 1" />
+      <dynamics damping="2.5" friction="0.03" />
+      <limit lower="-3.1416" upper="3.1416" effort="18.0" velocity="1.0" />
+    </joint>
+
+    <link name="arm_link4">
+      <xacro:e4_link_inertial
+        xyz="${-joint4_x} ${-joint4_y} 0"
+        mass="0.12"
+        ixx="0.001"
+        iyy="0.001"
+        izz="0.0012" />
+      <visual>
+        <origin xyz="${-joint4_x} ${-joint4_y} 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/5${duojin01_e4_mesh_suffix}.dae" />
+        </geometry>
+        <material name="e4_mesh_gray" />
+      </visual>
+    </link>
+
+    <joint name="arm_joint4" type="revolute">
+      <origin xyz="${joint4_x - joint3_x} ${joint4_y - joint3_y} 0" rpy="0 0 0" />
+      <parent link="arm_link3" />
+      <child link="arm_link4" />
+      <axis xyz="0 0 1" />
+      <dynamics damping="1.8" friction="0.02" />
+      <limit lower="-3.1416" upper="3.1416" effort="12.0" velocity="0.8" />
+    </joint>
+
+    <link name="arm_tool_link">
+      <xacro:e4_link_inertial mass="0.02" ixx="0.0002" iyy="0.0002" izz="0.0002" />
+    </link>
+
+    <joint name="arm_tool_fixed_joint" type="fixed">
+      <origin xyz="${ee_x - joint4_x} ${ee_y - joint4_y} ${ee_z}" rpy="0 0 0" />
+      <parent link="arm_link4" />
+      <child link="arm_tool_link" />
+    </joint>
+
+    <link name="arm_suction_link">
+      <xacro:e4_link_inertial mass="0.01" ixx="0.00005" iyy="0.00005" izz="0.00005" />
+      <visual>
+        <origin xyz="0 0 ${suction_cup_contact_to_mesh_origin_z}" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://duojin01_description/meshes/e4/suction_cup.stl" />
+        </geometry>
+        <material name="e4_kinematic_suction_rubber">
+          <color rgba="0.05 0.05 0.05 1.0" />
+        </material>
+      </visual>
+      <collision name="arm_suction_collision">
+        <origin xyz="0 0 ${suction_cup_mesh_length / 2.0}" rpy="0 0 0" />
+        <geometry>
+          <cylinder radius="${suction_cup_mesh_radius}" length="${suction_cup_mesh_length}" />
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="arm_tool_to_suction_joint" type="fixed">
+      <origin
+        xyz="0 ${-suction_cup_contact_to_mesh_origin_z} 0"
+        rpy="${suction_cup_visual_r} ${suction_cup_visual_p} ${suction_cup_visual_yaw}" />
+      <parent link="arm_tool_link" />
+      <child link="arm_suction_link" />
+    </joint>
+
+    <link name="arm_mono_camera_link">
+      <xacro:e4_link_inertial mass="0.03" ixx="0.0001" iyy="0.0001" izz="0.0001" />
+      <visual>
+        <origin xyz="${camera_visual_xyz}" rpy="0 0 0" />
+        <geometry>
+          <mesh
+            filename="package://duojin01_description/meshes/e4/camera.stl"
+            scale="${camera_mesh_scale}" />
+        </geometry>
+        <material name="e4_kinematic_camera_housing">
+          <color rgba="0.12 0.12 0.12 1.0" />
+        </material>
+      </visual>
+    </link>
+
+    <joint name="arm_link4_to_mono_camera_joint" type="fixed">
+      <origin xyz="${camera_mount_xyz}" rpy="${camera_mount_rpy}" />
+      <parent link="arm_link4" />
+      <child link="arm_mono_camera_link" />
+    </joint>
+
+    <link name="camera_optical_frame" />
+
+    <joint name="arm_mono_camera_optical_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
+      <parent link="arm_mono_camera_link" />
+      <child link="camera_optical_frame" />
+    </joint>
+  </xacro:macro>
+</robot>

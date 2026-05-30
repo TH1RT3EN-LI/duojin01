@@ -29,7 +29,7 @@ slam_toolbox:
     throttle_scans: 1
     transform_publish_period: 0.02 #if 0 never publishes odometry
     map_update_interval: 0.1
-    resolution: 0.03
+    resolution: 0.02
     restamp_tf: false
     min_laser_range: 0.31 # keep safely above lidar model minimum to avoid precision edge warnings
     max_laser_range: 8.0 #for rastering images

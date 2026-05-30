@@ -15,18 +15,56 @@
       <render_engine>ogre2</render_engine>
     </plugin>
 
-    <light type="directional" name="sun">
-      <cast_shadows>true</cast_shadows>
-      <pose>0 0 10 0 0 0</pose>
-      <diffuse>0.8 0.8 0.8 1</diffuse>
-      <specular>0.2 0.2 0.2 1</specular>
+    <light type="point" name="fill_light_sw">
+      <cast_shadows>false</cast_shadows>
+      <pose>-0.10 -2.95 3.00 0 0 0</pose>
+      <diffuse>0.386667 0.386667 0.360000 1</diffuse>
+      <specular>0.053333 0.053333 0.040000 1</specular>
       <attenuation>
-        <range>1000</range>
-        <constant>0.9</constant>
-        <linear>0.01</linear>
-        <quadratic>0.001</quadratic>
+        <range>7.5</range>
+        <constant>0.8</constant>
+        <linear>0.05</linear>
+        <quadratic>0.004</quadratic>
       </attenuation>
-      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <light type="point" name="fill_light_nw">
+      <cast_shadows>false</cast_shadows>
+      <pose>-0.10 -0.15 3.00 0 0 0</pose>
+      <diffuse>0.386667 0.386667 0.360000 1</diffuse>
+      <specular>0.053333 0.053333 0.040000 1</specular>
+      <attenuation>
+        <range>7.5</range>
+        <constant>0.8</constant>
+        <linear>0.05</linear>
+        <quadratic>0.004</quadratic>
+      </attenuation>
+    </light>
+
+    <light type="point" name="fill_light_se">
+      <cast_shadows>false</cast_shadows>
+      <pose>2.85 -2.95 3.00 0 0 0</pose>
+      <diffuse>0.386667 0.386667 0.360000 1</diffuse>
+      <specular>0.053333 0.053333 0.040000 1</specular>
+      <attenuation>
+        <range>7.5</range>
+        <constant>0.8</constant>
+        <linear>0.05</linear>
+        <quadratic>0.004</quadratic>
+      </attenuation>
+    </light>
+
+    <light type="point" name="fill_light_ne">
+      <cast_shadows>false</cast_shadows>
+      <pose>2.85 -0.15 3.00 0 0 0</pose>
+      <diffuse>0.386667 0.386667 0.360000 1</diffuse>
+      <specular>0.053333 0.053333 0.040000 1</specular>
+      <attenuation>
+        <range>7.5</range>
+        <constant>0.8</constant>
+        <linear>0.05</linear>
+        <quadratic>0.004</quadratic>
+      </attenuation>
     </light>
 
     <model name="ground_plane">
@@ -63,7 +101,7 @@
         <!-- Simplified from the original race_track.dae top-level components.
              External tag cubes remain separate includes below. -->
         <collision name="platform_01_collision">
-          <pose>2.640989 0.008750 7.616455 -1.570796 0 0</pose>
+          <pose>2.540989 0.008750 7.616455 -1.570796 0 0</pose>
           <geometry>
             <box>
               <size>0.500000 0.500000 0.010000</size>
@@ -71,7 +109,7 @@
           </geometry>
         </collision>
         <visual name="platform_01_visual">
-          <pose>2.640989 0.008750 7.616455 -1.570796 0 0</pose>
+          <pose>2.540989 0.008750 7.616455 -1.570796 0 0</pose>
           <geometry>
             <box>
               <size>0.500000 0.500000 0.010000</size>
@@ -85,7 +123,7 @@
         </visual>
 
         <collision name="platform_02_collision">
-          <pose>2.640989 0.007539 11.116455 -1.570796 0 0</pose>
+          <pose>2.540989 0.007539 11.116455 -1.570796 0 0</pose>
           <geometry>
             <box>
               <size>0.500000 0.500000 0.010000</size>
@@ -93,7 +131,7 @@
           </geometry>
         </collision>
         <visual name="platform_02_visual">
-          <pose>2.640989 0.007539 11.116455 -1.570796 0 0</pose>
+          <pose>2.540989 0.007539 11.116455 -1.570796 0 0</pose>
           <geometry>
             <box>
               <size>0.500000 0.500000 0.010000</size>
@@ -108,7 +146,7 @@
 
         <!-- Multi-layer rack proxies preserve the open shelf spaces. -->
         <collision name="rack_01_shelf_01_collision">
-          <pose>0.631993 0.054556 9.547932 0 0 0</pose>
+          <pose>0.531993 0.054556 9.547932 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -116,7 +154,7 @@
           </geometry>
         </collision>
         <visual name="rack_01_shelf_01_visual">
-          <pose>0.631993 0.054556 9.547932 0 0 0</pose>
+          <pose>0.531993 0.054556 9.547932 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -129,7 +167,7 @@
           </material>
         </visual>
         <collision name="rack_01_shelf_02_collision">
-          <pose>0.631993 0.268656 9.547932 0 0 0</pose>
+          <pose>0.531993 0.268656 9.547932 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -137,7 +175,7 @@
           </geometry>
         </collision>
         <visual name="rack_01_shelf_02_visual">
-          <pose>0.631993 0.268656 9.547932 0 0 0</pose>
+          <pose>0.531993 0.268656 9.547932 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -150,7 +188,7 @@
           </material>
         </visual>
         <collision name="rack_01_shelf_03_collision">
-          <pose>0.631993 0.731356 9.547932 0 0 0</pose>
+          <pose>0.531993 0.731356 9.547932 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -158,7 +196,7 @@
           </geometry>
         </collision>
         <visual name="rack_01_shelf_03_visual">
-          <pose>0.631993 0.731356 9.547932 0 0 0</pose>
+          <pose>0.531993 0.731356 9.547932 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -170,19 +208,40 @@
             <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
-        <collision name="rack_01_shelf_04_collision">
-          <pose>0.631993 1.196456 9.547932 0 0 0</pose>
+        <collision name="rack_01_fill_collision">
+          <pose>0.531993 0.023703 9.547932 0 0 0</pose>
           <geometry>
             <box>
-              <size>2.067200 0.014300 0.345600</size>
+              <size>2.067200 0.047406 0.345600</size>
             </box>
           </geometry>
         </collision>
-        <visual name="rack_01_shelf_04_visual">
-          <pose>0.631993 1.196456 9.547932 0 0 0</pose>
+        <visual name="rack_01_fill_visual">
+          <pose>0.531993 0.023703 9.547932 0 0 0</pose>
           <geometry>
             <box>
-              <size>2.067200 0.014300 0.345600</size>
+              <size>2.067200 0.047406 0.345600</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.6 0.6 0.6 1</ambient>
+            <diffuse>0.6 0.6 0.6 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        <collision name="rack_01_fill_02_collision">
+          <pose>0.531993 0.161606 9.547932 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>2.067200 0.199800 0.345600</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="rack_01_fill_02_visual">
+          <pose>0.531993 0.161606 9.547932 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>2.067200 0.199800 0.345600</size>
             </box>
           </geometry>
           <material>
@@ -192,18 +251,18 @@
           </material>
         </visual>
         <collision name="rack_01_post_01_collision">
-          <pose>-0.381607 0.711456 9.395132 0 0 0</pose>
+          <pose>-0.481607 0.478906 9.395132 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_01_post_01_visual">
-          <pose>-0.381607 0.711456 9.395132 0 0 0</pose>
+          <pose>-0.481607 0.478906 9.395132 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -213,18 +272,18 @@
           </material>
         </visual>
         <collision name="rack_01_post_02_collision">
-          <pose>-0.381607 0.711456 9.700732 0 0 0</pose>
+          <pose>-0.481607 0.478906 9.700732 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_01_post_02_visual">
-          <pose>-0.381607 0.711456 9.700732 0 0 0</pose>
+          <pose>-0.481607 0.478906 9.700732 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -234,18 +293,18 @@
           </material>
         </visual>
         <collision name="rack_01_post_03_collision">
-          <pose>1.645593 0.711456 9.395132 0 0 0</pose>
+          <pose>1.545593 0.478906 9.395132 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_01_post_03_visual">
-          <pose>1.645593 0.711456 9.395132 0 0 0</pose>
+          <pose>1.545593 0.478906 9.395132 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -255,18 +314,18 @@
           </material>
         </visual>
         <collision name="rack_01_post_04_collision">
-          <pose>1.645593 0.711456 9.700732 0 0 0</pose>
+          <pose>1.545593 0.478906 9.700732 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_01_post_04_visual">
-          <pose>1.645593 0.711456 9.700732 0 0 0</pose>
+          <pose>1.545593 0.478906 9.700732 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -277,7 +336,7 @@
         </visual>
 
         <collision name="rack_02_shelf_01_collision">
-          <pose>0.631993 0.054556 11.154176 0 0 0</pose>
+          <pose>0.531993 0.054556 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -285,7 +344,7 @@
           </geometry>
         </collision>
         <visual name="rack_02_shelf_01_visual">
-          <pose>0.631993 0.054556 11.154176 0 0 0</pose>
+          <pose>0.531993 0.054556 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -298,7 +357,7 @@
           </material>
         </visual>
         <collision name="rack_02_shelf_02_collision">
-          <pose>0.631993 0.268656 11.154176 0 0 0</pose>
+          <pose>0.531993 0.268656 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -306,7 +365,7 @@
           </geometry>
         </collision>
         <visual name="rack_02_shelf_02_visual">
-          <pose>0.631993 0.268656 11.154176 0 0 0</pose>
+          <pose>0.531993 0.268656 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -319,7 +378,7 @@
           </material>
         </visual>
         <collision name="rack_02_shelf_03_collision">
-          <pose>0.631993 0.731356 11.154176 0 0 0</pose>
+          <pose>0.531993 0.731356 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -327,7 +386,7 @@
           </geometry>
         </collision>
         <visual name="rack_02_shelf_03_visual">
-          <pose>0.631993 0.731356 11.154176 0 0 0</pose>
+          <pose>0.531993 0.731356 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>2.067200 0.014300 0.345600</size>
@@ -339,19 +398,40 @@
             <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
-        <collision name="rack_02_shelf_04_collision">
-          <pose>0.631993 1.196456 11.154176 0 0 0</pose>
+        <collision name="rack_02_fill_collision">
+          <pose>0.531993 0.023703 11.154176 0 0 0</pose>
           <geometry>
             <box>
-              <size>2.067200 0.014300 0.345600</size>
+              <size>2.067200 0.047406 0.345600</size>
             </box>
           </geometry>
         </collision>
-        <visual name="rack_02_shelf_04_visual">
-          <pose>0.631993 1.196456 11.154176 0 0 0</pose>
+        <visual name="rack_02_fill_visual">
+          <pose>0.531993 0.023703 11.154176 0 0 0</pose>
           <geometry>
             <box>
-              <size>2.067200 0.014300 0.345600</size>
+              <size>2.067200 0.047406 0.345600</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.6 0.6 0.6 1</ambient>
+            <diffuse>0.6 0.6 0.6 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        <collision name="rack_02_fill_02_collision">
+          <pose>0.531993 0.161606 11.154176 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>2.067200 0.199800 0.345600</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="rack_02_fill_02_visual">
+          <pose>0.531993 0.161606 11.154176 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>2.067200 0.199800 0.345600</size>
             </box>
           </geometry>
           <material>
@@ -361,18 +441,18 @@
           </material>
         </visual>
         <collision name="rack_02_post_01_collision">
-          <pose>-0.381607 0.711456 11.001376 0 0 0</pose>
+          <pose>-0.481607 0.478906 11.001376 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_02_post_01_visual">
-          <pose>-0.381607 0.711456 11.001376 0 0 0</pose>
+          <pose>-0.481607 0.478906 11.001376 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -382,18 +462,18 @@
           </material>
         </visual>
         <collision name="rack_02_post_02_collision">
-          <pose>-0.381607 0.711456 11.306976 0 0 0</pose>
+          <pose>-0.481607 0.478906 11.306976 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_02_post_02_visual">
-          <pose>-0.381607 0.711456 11.306976 0 0 0</pose>
+          <pose>-0.481607 0.478906 11.306976 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -403,18 +483,18 @@
           </material>
         </visual>
         <collision name="rack_02_post_03_collision">
-          <pose>1.645593 0.711456 11.001376 0 0 0</pose>
+          <pose>1.545593 0.478906 11.001376 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_02_post_03_visual">
-          <pose>1.645593 0.711456 11.001376 0 0 0</pose>
+          <pose>1.545593 0.478906 11.001376 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -424,18 +504,18 @@
           </material>
         </visual>
         <collision name="rack_02_post_04_collision">
-          <pose>1.645593 0.711456 11.306976 0 0 0</pose>
+          <pose>1.545593 0.478906 11.306976 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_02_post_04_visual">
-          <pose>1.645593 0.711456 11.306976 0 0 0</pose>
+          <pose>1.545593 0.478906 11.306976 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -446,7 +526,7 @@
         </visual>
 
         <collision name="rack_03_shelf_01_collision">
-          <pose>2.647930 0.054556 11.154176 0 0 0</pose>
+          <pose>2.547930 0.054556 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>0.463929 0.014300 0.345600</size>
@@ -454,7 +534,7 @@
           </geometry>
         </collision>
         <visual name="rack_03_shelf_01_visual">
-          <pose>2.647930 0.054556 11.154176 0 0 0</pose>
+          <pose>2.547930 0.054556 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>0.463929 0.014300 0.345600</size>
@@ -467,7 +547,7 @@
           </material>
         </visual>
         <collision name="rack_03_shelf_02_collision">
-          <pose>2.647930 0.268656 11.154176 0 0 0</pose>
+          <pose>2.547930 0.268656 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>0.463929 0.014300 0.345600</size>
@@ -475,7 +555,7 @@
           </geometry>
         </collision>
         <visual name="rack_03_shelf_02_visual">
-          <pose>2.647930 0.268656 11.154176 0 0 0</pose>
+          <pose>2.547930 0.268656 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>0.463929 0.014300 0.345600</size>
@@ -488,7 +568,7 @@
           </material>
         </visual>
         <collision name="rack_03_shelf_03_collision">
-          <pose>2.647930 0.731356 11.154176 0 0 0</pose>
+          <pose>2.547930 0.731356 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>0.463929 0.014300 0.345600</size>
@@ -496,7 +576,7 @@
           </geometry>
         </collision>
         <visual name="rack_03_shelf_03_visual">
-          <pose>2.647930 0.731356 11.154176 0 0 0</pose>
+          <pose>2.547930 0.731356 11.154176 0 0 0</pose>
           <geometry>
             <box>
               <size>0.463929 0.014300 0.345600</size>
@@ -508,19 +588,40 @@
             <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
-        <collision name="rack_03_shelf_04_collision">
-          <pose>2.647930 1.196456 11.154176 0 0 0</pose>
+        <collision name="rack_03_fill_collision">
+          <pose>2.547930 0.023703 11.154176 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.463929 0.014300 0.345600</size>
+              <size>0.463929 0.047406 0.345600</size>
             </box>
           </geometry>
         </collision>
-        <visual name="rack_03_shelf_04_visual">
-          <pose>2.647930 1.196456 11.154176 0 0 0</pose>
+        <visual name="rack_03_fill_visual">
+          <pose>2.547930 0.023703 11.154176 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.463929 0.014300 0.345600</size>
+              <size>0.463929 0.047406 0.345600</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.6 0.6 0.6 1</ambient>
+            <diffuse>0.6 0.6 0.6 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        <collision name="rack_03_fill_02_collision">
+          <pose>2.547930 0.161606 11.154176 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.463929 0.199800 0.345600</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="rack_03_fill_02_visual">
+          <pose>2.547930 0.161606 11.154176 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.463929 0.199800 0.345600</size>
             </box>
           </geometry>
           <material>
@@ -530,18 +631,18 @@
           </material>
         </visual>
         <collision name="rack_03_post_01_collision">
-          <pose>2.435965 0.711456 11.001376 0 0 0</pose>
+          <pose>2.335965 0.478906 11.001376 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_03_post_01_visual">
-          <pose>2.435965 0.711456 11.001376 0 0 0</pose>
+          <pose>2.335965 0.478906 11.001376 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -551,18 +652,18 @@
           </material>
         </visual>
         <collision name="rack_03_post_02_collision">
-          <pose>2.435965 0.711456 11.306976 0 0 0</pose>
+          <pose>2.335965 0.478906 11.306976 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_03_post_02_visual">
-          <pose>2.435965 0.711456 11.306976 0 0 0</pose>
+          <pose>2.335965 0.478906 11.306976 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -572,18 +673,18 @@
           </material>
         </visual>
         <collision name="rack_03_post_03_collision">
-          <pose>2.859895 0.711456 11.001376 0 0 0</pose>
+          <pose>2.759895 0.478906 11.001376 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_03_post_03_visual">
-          <pose>2.859895 0.711456 11.001376 0 0 0</pose>
+          <pose>2.759895 0.478906 11.001376 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -593,18 +694,18 @@
           </material>
         </visual>
         <collision name="rack_03_post_04_collision">
-          <pose>2.859895 0.711456 11.306976 0 0 0</pose>
+          <pose>2.759895 0.478906 11.306976 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_03_post_04_visual">
-          <pose>2.859895 0.711456 11.306976 0 0 0</pose>
+          <pose>2.759895 0.478906 11.306976 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 1.397725 0.040000</size>
+              <size>0.040000 0.932625 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -615,7 +716,7 @@
         </visual>
 
         <collision name="platform_03_collision">
-          <pose>0.505022 0.008750 7.616455 -1.570796 0 0</pose>
+          <pose>0.405022 0.008750 7.616455 -1.570796 0 0</pose>
           <geometry>
             <box>
               <size>0.500000 0.500000 0.010000</size>
@@ -623,7 +724,7 @@
           </geometry>
         </collision>
         <visual name="platform_03_visual">
-          <pose>0.505022 0.008750 7.616455 -1.570796 0 0</pose>
+          <pose>0.405022 0.008750 7.616455 -1.570796 0 0</pose>
           <geometry>
             <box>
               <size>0.500000 0.500000 0.010000</size>
@@ -637,7 +738,7 @@
         </visual>
 
         <collision name="rack_04_shelf_01_collision">
-          <pose>-0.430136 0.049762 7.595416 0 0 0</pose>
+          <pose>-0.530136 0.049762 7.595416 0 0 0</pose>
           <geometry>
             <box>
               <size>1.317174 0.014300 0.345600</size>
@@ -645,7 +746,7 @@
           </geometry>
         </collision>
         <visual name="rack_04_shelf_01_visual">
-          <pose>-0.430136 0.049762 7.595416 0 0 0</pose>
+          <pose>-0.530136 0.049762 7.595416 0 0 0</pose>
           <geometry>
             <box>
               <size>1.317174 0.014300 0.345600</size>
@@ -658,7 +759,7 @@
           </material>
         </visual>
         <collision name="rack_04_shelf_02_collision">
-          <pose>-0.430136 0.263862 7.595416 0 0 0</pose>
+          <pose>-0.530136 0.263862 7.595416 0 0 0</pose>
           <geometry>
             <box>
               <size>1.317174 0.014300 0.345600</size>
@@ -666,7 +767,7 @@
           </geometry>
         </collision>
         <visual name="rack_04_shelf_02_visual">
-          <pose>-0.430136 0.263862 7.595416 0 0 0</pose>
+          <pose>-0.530136 0.263862 7.595416 0 0 0</pose>
           <geometry>
             <box>
               <size>1.317174 0.014300 0.345600</size>
@@ -678,19 +779,40 @@
             <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
-        <collision name="rack_04_shelf_03_collision">
-          <pose>-0.430136 0.726562 7.595416 0 0 0</pose>
+        <collision name="rack_04_fill_collision">
+          <pose>-0.530136 0.021306 7.595416 0 0 0</pose>
           <geometry>
             <box>
-              <size>1.317174 0.014300 0.345600</size>
+              <size>1.317174 0.042612 0.345600</size>
             </box>
           </geometry>
         </collision>
-        <visual name="rack_04_shelf_03_visual">
-          <pose>-0.430136 0.726562 7.595416 0 0 0</pose>
+        <visual name="rack_04_fill_visual">
+          <pose>-0.530136 0.021306 7.595416 0 0 0</pose>
           <geometry>
             <box>
-              <size>1.317174 0.014300 0.345600</size>
+              <size>1.317174 0.042612 0.345600</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.6 0.6 0.6 1</ambient>
+            <diffuse>0.6 0.6 0.6 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        <collision name="rack_04_fill_02_collision">
+          <pose>-0.530136 0.156812 7.595416 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>1.317174 0.199800 0.345600</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="rack_04_fill_02_visual">
+          <pose>-0.530136 0.156812 7.595416 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>1.317174 0.199800 0.345600</size>
             </box>
           </geometry>
           <material>
@@ -700,18 +822,18 @@
           </material>
         </visual>
         <collision name="rack_04_post_01_collision">
-          <pose>-1.068723 0.371762 7.442616 0 0 0</pose>
+          <pose>-1.168723 0.140412 7.442616 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 0.727860 0.040000</size>
+              <size>0.040000 0.265160 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_04_post_01_visual">
-          <pose>-1.068723 0.371762 7.442616 0 0 0</pose>
+          <pose>-1.168723 0.140412 7.442616 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 0.727860 0.040000</size>
+              <size>0.040000 0.265160 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -721,18 +843,18 @@
           </material>
         </visual>
         <collision name="rack_04_post_02_collision">
-          <pose>-1.068723 0.371762 7.748216 0 0 0</pose>
+          <pose>-1.168723 0.140412 7.748216 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 0.727860 0.040000</size>
+              <size>0.040000 0.265160 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_04_post_02_visual">
-          <pose>-1.068723 0.371762 7.748216 0 0 0</pose>
+          <pose>-1.168723 0.140412 7.748216 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 0.727860 0.040000</size>
+              <size>0.040000 0.265160 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -742,18 +864,18 @@
           </material>
         </visual>
         <collision name="rack_04_post_03_collision">
-          <pose>0.208451 0.371762 7.442616 0 0 0</pose>
+          <pose>0.108451 0.140412 7.442616 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 0.727860 0.040000</size>
+              <size>0.040000 0.265160 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_04_post_03_visual">
-          <pose>0.208451 0.371762 7.442616 0 0 0</pose>
+          <pose>0.108451 0.140412 7.442616 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 0.727860 0.040000</size>
+              <size>0.040000 0.265160 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -763,40 +885,18 @@
           </material>
         </visual>
         <collision name="rack_04_post_04_collision">
-          <pose>0.208451 0.371762 7.748216 0 0 0</pose>
+          <pose>0.108451 0.140412 7.748216 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 0.727860 0.040000</size>
+              <size>0.040000 0.265160 0.040000</size>
             </box>
           </geometry>
         </collision>
         <visual name="rack_04_post_04_visual">
-          <pose>0.208451 0.371762 7.748216 0 0 0</pose>
+          <pose>0.108451 0.140412 7.748216 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.040000 0.727860 0.040000</size>
-            </box>
-          </geometry>
-          <material>
-            <ambient>0.6 0.6 0.6 1</ambient>
-            <diffuse>0.6 0.6 0.6 1</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
-          </material>
-        </visual>
-
-        <collision name="proxy_132005_collision">
-          <pose>-0.709671 0.942535 7.613829 -1.570796 0 0</pose>
-          <geometry>
-            <box>
-              <size>0.790961 0.234111 0.430684</size>
-            </box>
-          </geometry>
-        </collision>
-        <visual name="proxy_132005_visual">
-          <pose>-0.709671 0.942535 7.613829 -1.570796 0 0</pose>
-          <geometry>
-            <box>
-              <size>0.790961 0.234111 0.430684</size>
+              <size>0.040000 0.265160 0.040000</size>
             </box>
           </geometry>
           <material>
@@ -807,7 +907,7 @@
         </visual>
 
         <collision name="wall_west_collision">
-          <pose>-1.080624 0.500000 9.366455 0 -1.570796 0</pose>
+          <pose>-1.123848 0.500000 9.366455 0 -1.570796 0</pose>
           <geometry>
             <box>
               <size>4.000000 1.000000 0.056775</size>
@@ -815,7 +915,7 @@
           </geometry>
         </collision>
         <visual name="wall_west_visual">
-          <pose>-1.080624 0.500000 9.366455 0 -1.570796 0</pose>
+          <pose>-1.123848 0.500000 9.366455 0 -1.570796 0</pose>
           <geometry>
             <box>
               <size>4.000000 1.000000 0.056775</size>
@@ -829,7 +929,7 @@
         </visual>
 
         <collision name="wall_north_collision">
-          <pose>0.890989 0.500000 11.383706 0 0 0</pose>
+          <pose>0.790989 0.500000 11.383706 0 0 0</pose>
           <geometry>
             <box>
               <size>4.000000 1.000000 0.056775</size>
@@ -837,7 +937,7 @@
           </geometry>
         </collision>
         <visual name="wall_north_visual">
-          <pose>0.890989 0.500000 11.383706 0 0 0</pose>
+          <pose>0.790989 0.500000 11.383706 0 0 0</pose>
           <geometry>
             <box>
               <size>4.000000 1.000000 0.056775</size>
@@ -851,7 +951,7 @@
         </visual>
 
         <collision name="wall_south_collision">
-          <pose>0.890989 0.500000 7.394843 0 0 0</pose>
+          <pose>0.790989 0.500000 7.394843 0 0 0</pose>
           <geometry>
             <box>
               <size>4.000000 1.000000 0.056775</size>
@@ -859,7 +959,7 @@
           </geometry>
         </collision>
         <visual name="wall_south_visual">
-          <pose>0.890989 0.500000 7.394843 0 0 0</pose>
+          <pose>0.790989 0.500000 7.394843 0 0 0</pose>
           <geometry>
             <box>
               <size>4.000000 1.000000 0.056775</size>
@@ -873,7 +973,7 @@
         </visual>
 
         <collision name="wall_east_collision">
-          <pose>2.862601 0.500000 9.366455 0 -1.570796 0</pose>
+          <pose>2.819376 0.500000 9.366455 0 -1.570796 0</pose>
           <geometry>
             <box>
               <size>4.000000 1.000000 0.056775</size>
@@ -881,7 +981,7 @@
           </geometry>
         </collision>
         <visual name="wall_east_visual">
-          <pose>2.862601 0.500000 9.366455 0 -1.570796 0</pose>
+          <pose>2.819376 0.500000 9.366455 0 -1.570796 0</pose>
           <geometry>
             <box>
               <size>4.000000 1.000000 0.056775</size>
@@ -898,124 +998,74 @@
 
     <!-- Deterministic random replacement for the former Box007..Box030 cubes. -->
     <include>
-      <name>tag_cube_01</name>
-      <uri>model://cube-tag36h11-4</uri>
-      <pose>3.137010 -1.254394 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_02</name>
-      <uri>model://cube-tag36h11-0</uri>
-      <pose>1.538865 -1.256578 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_03</name>
-      <uri>model://cube-tag36h11-2</uri>
-      <pose>3.135893 -2.657427 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_04</name>
-      <uri>model://cube-tag36h11-0</uri>
-      <pose>1.537751 -2.656154 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_05</name>
-      <uri>model://cube-tag36h11-1</uri>
-      <pose>3.136105 -2.391749 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_06</name>
-      <uri>model://cube-tag36h11-2</uri>
-      <pose>1.537962 -2.390476 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_07</name>
-      <uri>model://cube-tag36h11-0</uri>
-      <pose>3.136727 -1.610477 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_08</name>
-      <uri>model://cube-tag36h11-1</uri>
-      <pose>1.538582 -1.612661 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_09</name>
-      <uri>model://cube-tag36h11-5</uri>
-      <pose>3.136487 -1.911226 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_10</name>
-      <uri>model://cube-tag36h11-5</uri>
-      <pose>1.538342 -1.913409 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_11</name>
-      <uri>model://cube-tag36h11-3</uri>
-      <pose>3.136309 -2.134808 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
-      <name>tag_cube_12</name>
-      <uri>model://cube-tag36h11-0</uri>
-      <pose>1.538167 -2.133535 0.725293 1.57079632679 0 1.57</pose>
-    </include>
-    <include>
       <name>tag_cube_13</name>
       <uri>model://cube-tag36h11-3</uri>
-      <pose>3.035893 -2.657427 0.262128 1.57079632679 0 1.57</pose>
+      <pose>3.136422 -2.676791 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_14</name>
       <uri>model://cube-tag36h11-1</uri>
-      <pose>3.036105 -2.391749 0.262128 1.57079632679 0 1.57</pose>
+      <pose>3.136422 -2.396530 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_15</name>
       <uri>model://cube-tag36h11-2</uri>
-      <pose>3.036309 -2.134808 0.262128 1.57079632679 0 1.57</pose>
+      <pose>3.136422 -2.116269 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_16</name>
       <uri>model://cube-tag36h11-4</uri>
-      <pose>3.036487 -1.911226 0.262128 1.57079632679 0 1.57</pose>
+      <pose>3.136422 -1.836008 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_17</name>
       <uri>model://cube-tag36h11-4</uri>
-      <pose>3.036727 -1.610477 0.262128 1.57079632679 0 1.57</pose>
+      <pose>3.136422 -1.555747 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_18</name>
       <uri>model://cube-tag36h11-4</uri>
-      <pose>3.037010 -1.254394 0.262128 1.57079632679 0 1.57</pose>
+      <pose>3.136422 -1.275486 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_19</name>
       <uri>model://cube-tag36h11-1</uri>
-      <pose>1.437751 -2.656154 0.262128 1.57079632679 0 1.57</pose>
+      <pose>1.538278 -2.676791 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_20</name>
       <uri>model://cube-tag36h11-3</uri>
-      <pose>1.437962 -2.390476 0.262128 1.57079632679 0 1.57</pose>
+      <pose>1.538278 -2.396530 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_21</name>
       <uri>model://cube-tag36h11-3</uri>
-      <pose>1.438167 -2.133535 0.262128 1.57079632679 0 1.57</pose>
+      <pose>1.538278 -2.116269 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_22</name>
       <uri>model://cube-tag36h11-5</uri>
-      <pose>1.438342 -1.913409 0.262128 1.57079632679 0 1.57</pose>
+      <pose>1.538278 -1.836008 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_23</name>
       <uri>model://cube-tag36h11-2</uri>
-      <pose>1.438582 -1.612661 0.262128 1.57079632679 0 1.57</pose>
+      <pose>1.538278 -1.555747 0.262128 1.57079632679 0 1.57</pose>
     </include>
     <include>
       <name>tag_cube_24</name>
       <uri>model://cube-tag36h11-5</uri>
-      <pose>1.438865 -1.256578 0.262128 1.57079632679 0 1.57</pose>
+      <pose>1.538278 -1.275486 0.262128 1.57079632679 0 1.57</pose>
+    </include>
+    <include>
+      <name>rack03_chips_bag_a</name>
+      <uri>model://chips-bag-a</uri>
+      <pose>3.106281 0.039047 0.245806 0 0 0</pose>
+    </include>
+    <include>
+      <name>rack03_chips_bag_b</name>
+      <uri>model://chips-bag-b</uri>
+      <pose>3.106281 0.039047 0.708506 0 0 0</pose>
     </include>
   </world>
 </sdf>
