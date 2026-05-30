@@ -326,6 +326,7 @@ private:
             handle_serial_error("port closed unexpectedly (possible cable disconnect / EOF)");
             return;
         }
+        const bool has_sensor_frame = get_sensor_data();
         // 2) 端口看似打开但长时间无数据（静默故障）
         if (serial_ && serial_->is_open())
         {
@@ -348,7 +349,7 @@ private:
             return;
         }
 
-        if (!get_sensor_data())
+        if (!has_sensor_frame)
         {
             return;
         }

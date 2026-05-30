@@ -29,6 +29,8 @@ setup(
             'nav_demo = scripts.nav_demo:main',
             'pick_demo = scripts.pick_demo:main',
             'place_demo = scripts.place_demo:main',
+            'sim_demo = scripts.sim_demo:main',
+            'vel_move_demo = scripts.vel_move_demo:main',
             'mission_executor = duojin01_mission.mission_executor_node:main',
         ],
     },
