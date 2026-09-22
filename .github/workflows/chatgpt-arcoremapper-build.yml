@@ -1,0 +1,47 @@
+name: ChatGPT ARCoreMapper APK
+on:
+  push:
+    branches:
+      - chatgpt-arcoremapper-apk-20260922
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android 37 platform
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-37" "platform-tools"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+
+      - name: Reconstruct source
+        run: |
+          cat chatgpt_arcoremapper_build/source.part*.b64 | tr -d '\n' | base64 -d > /tmp/arcoremapper.zip
+          mkdir -p /tmp/arcoremapper-src
+          unzip -q /tmp/arcoremapper.zip -d /tmp/arcoremapper-src
+          test -f /tmp/arcoremapper-src/ARCoreMapper/app/build.gradle
+
+      - name: Build debug APK
+        working-directory: /tmp/arcoremapper-src/ARCoreMapper
+        run: gradle --no-daemon :app:assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ARCoreMapper-RGB-debug-apk
+          path: /tmp/arcoremapper-src/ARCoreMapper/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
