@@ -29,7 +29,7 @@ jobs:
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37" "build-tools;37.0.0" "platform-tools"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -40,6 +40,8 @@ jobs:
           cat chatgpt_arcoremapper_build/source.part*.b64 | tr -d '\n' | base64 -d > /tmp/arcoremapper.zip
           mkdir -p /tmp/arcoremapper-src
           unzip -q /tmp/arcoremapper.zip -d /tmp/arcoremapper-src
+          sed -i 's/compileSdk 37/compileSdk 36/' /tmp/arcoremapper-src/ARCoreMapper/app/build.gradle
+          sed -i 's/targetSdk 37/targetSdk 36/' /tmp/arcoremapper-src/ARCoreMapper/app/build.gradle
           test -f /tmp/arcoremapper-src/ARCoreMapper/app/build.gradle
 
       - name: Build debug APK
