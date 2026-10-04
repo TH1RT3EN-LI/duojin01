@@ -152,6 +152,47 @@ def test_generated_urdf_contains_only_hardware_geometry():
         assert (ROOT / "src/duojin01_description" / relative).is_file(), filename
 
 
+def test_lidar_upgrade_preserves_hardware_interfaces_and_scopes_parameters(monkeypatch):
+    from launch import LaunchContext
+    from launch.actions import GroupAction, IncludeLaunchDescription
+    from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
+    module = load_launch("base")
+    lidar_share = ROOT / "src/lslidar_driver/lslidar_driver"
+    shares = {"lslidar_driver": lidar_share,
+              "duojin01_description": ROOT / "src/duojin01_description",
+              "duojin01_bringup": BRINGUP}
+    monkeypatch.setattr(module, "get_package_share_directory", lambda name: str(shares[name]))
+    description = module.generate_launch_description()
+    groups = [item for item in description.entities if isinstance(item, GroupAction)]
+    assert len(groups) == 1
+    children = groups[0].get_sub_entities()
+    include = next(item for item in children if isinstance(item, IncludeLaunchDescription))
+    context = LaunchContext()
+    context.launch_configurations.update(
+        params_file="/ws/config/nav2.yaml", lidar_serial_port="/dev/test_lidar", lidar_model="N10Plus")
+    include.launch_description_source.get_launch_description(context)
+    path = include.launch_description_source.location
+    assert Path(path) == lidar_share / "launch/lslidar_x10_launch.py"
+    values = {name: perform_substitutions(context, normalize_to_list_of_substitutions(value))
+              for name, value in include.launch_arguments}
+    assert values["params_file"] == str(lidar_share / "config/duojin01_n10plus.yaml")
+    assert values["serial_port"] == "/dev/test_lidar"
+    assert values["frame_id"] == "laser"
+    assert values["scan_topic"] == "/scan"
+    # Exercise the group's configuration stack without executing any node actions.
+    for action in groups[0].execute(context):
+        if action is include:
+            context.launch_configurations["params_file"] = values["params_file"]
+        else:
+            action.execute(context)
+    assert context.launch_configurations["params_file"] == "/ws/config/nav2.yaml"
+    configuration = yaml.safe_load(Path(values["params_file"]).read_text())["lslidar_driver_node"]["ros__parameters"]
+    assert configuration["invert_azimuth"] is True
+    assert configuration["use_sim_time"] is False
+    assert not (lidar_share / "src/lslidar_driver.cc").exists()
+    assert not (lidar_share / "params/lsx10.yaml").exists()
+
+
 def test_container_and_native_workspace_use_persistent_hardware_maps(tmp_path, monkeypatch):
     from duojin01_bringup import map_paths
     monkeypatch.setenv("DUOJIN01_WORKSPACE_ROOT", str(tmp_path))

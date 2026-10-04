@@ -1,3 +1,9 @@
+FROM ros:humble-ros-base-jammy AS package_manifests
+COPY src /source
+RUN python3 -c 'from pathlib import Path; import shutil; source = Path("/source"); output = Path("/package-manifests"); \
+    [(destination.parent.mkdir(parents=True, exist_ok=True), shutil.copyfile(path, destination)) \
+     for path in source.rglob("package.xml") for destination in [output / path.relative_to(source)]]'
+
 FROM ros:humble-ros-base-jammy AS dependencies
 SHELL ["/bin/bash", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,7 +21,7 @@ RUN printf 'APT::Install-Recommends "false";\nAPT::Install-Suggests "false";\n' 
 COPY requirements-hardware.txt /tmp/requirements-hardware.txt
 RUN python3 -m pip install --no-cache-dir -r /tmp/requirements-hardware.txt
 
-COPY src /tmp/hardware-dependencies/src
+COPY --from=package_manifests /package-manifests /tmp/hardware-dependencies/src
 RUN if [[ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]]; then rosdep init; fi && \
     rosdep update --rosdistro humble && \
     apt-get update && \

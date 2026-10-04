@@ -8,3 +8,5 @@ for entry in base mapping navigation nav2 slam save_map joy_teleop camera missio
   ros2 launch duojin01_bringup "$entry.launch.py" --show-args >/dev/null
   echo "Launch arguments resolved: $entry"
 done
+ros2 launch lslidar_driver lslidar_x10_launch.py --show-args >/dev/null
+echo "Launch arguments resolved: lslidar_x10"

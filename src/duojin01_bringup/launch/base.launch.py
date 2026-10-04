@@ -2,7 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
@@ -83,14 +83,21 @@ def generate_launch_description():
         ),
         condition=IfCondition(use_teleop),
     )
-    lslidar_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("lslidar_driver"),
-                "launch",
-                "lslidar_launch.py",
-            )
-        ),
+    lidar_share = get_package_share_directory("lslidar_driver")
+    lslidar_launch = GroupAction(
+        scoped=True,
+        actions=[IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(lidar_share, "launch", "lslidar_x10_launch.py")
+            ),
+            launch_arguments={
+                "params_file": os.path.join(lidar_share, "config", "duojin01_n10plus.yaml"),
+                "serial_port": LaunchConfiguration("lidar_serial_port"),
+                "lidar_model": LaunchConfiguration("lidar_model"),
+                "scan_topic": "/scan",
+                "frame_id": "laser",
+            }.items(),
+        )],
         condition=IfCondition(use_lidar),
     )
     
@@ -123,6 +130,8 @@ def generate_launch_description():
             DeclareLaunchArgument("use_teleop", default_value="true"),
             DeclareLaunchArgument("base_serial_port", default_value="/dev/duojin01_controller"),
             DeclareLaunchArgument("base_serial_baudrate", default_value="115200"),
+            DeclareLaunchArgument("lidar_serial_port", default_value="/dev/lslidar"),
+            DeclareLaunchArgument("lidar_model", default_value="N10Plus"),
             DeclareLaunchArgument("odom0", default_value="/odom"),
             DeclareLaunchArgument("imu0", default_value="/imu"),
             DeclareLaunchArgument("publish_robot_model", default_value="true"),
