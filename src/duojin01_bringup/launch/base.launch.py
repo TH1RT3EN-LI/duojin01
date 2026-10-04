@@ -27,8 +27,6 @@ def generate_launch_description():
 
     ekf_config_path = os.path.join(bringup_share, "config", "ekf.yaml")
     foxglove_bridge_config_path = os.path.join(bringup_share, "config", "foxglove", "bridge.yaml")
-    watchdog_share = get_package_share_directory("duojin01_safety_watchdog")
-    watchdog_config_path = os.path.join(watchdog_share, "config", "safety_watchdog.yaml")
     twist_mux_config_path = os.path.join(bringup_share, "config", "twist_mux.yaml")
 
     urdf_file = os.path.join(description_share, "urdf", "duojin01.xacro")
@@ -102,7 +100,7 @@ def generate_launch_description():
             name="twist_mux",
             output="screen",
             parameters=[twist_mux_config_path, {"use_sim_time": False}],
-            remappings=[("/cmd_vel_out", "/cmd_vel_safe")],
+            remappings=[("/cmd_vel_out", "/cmd_vel_base")],
         )
 
     base_driver_node = Node(
@@ -115,18 +113,7 @@ def generate_launch_description():
                 "usart_port_name": base_serial_port,
                 "serial_baud_rate": ParameterValue(base_serial_baudrate, value_type=int),
             }],
-            remappings=[("/cmd_vel", "/cmd_vel_safe")],
-        )
-
-    safety_watchdog_node = Node(
-            package="duojin01_safety_watchdog",
-            executable="safety_watchdog_node",
-            name="safety_watchdog",
-            output="screen",
-            parameters=[
-                watchdog_config_path,
-                {"use_sim_time": False},
-            ],
+            remappings=[("/cmd_vel", "/cmd_vel_base")],
         )
 
     return LaunchDescription(
@@ -142,7 +129,6 @@ def generate_launch_description():
             DeclareLaunchArgument("publish_joint_states", default_value="true"),
             twist_mux_node,
             base_driver_node,
-            safety_watchdog_node,
             joint_state_publisher,
             robot_state_publisher,
             ekf_node,

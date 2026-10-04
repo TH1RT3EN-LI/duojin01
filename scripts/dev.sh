@@ -15,7 +15,6 @@ SHM_SIZE="${SHM_SIZE:-}"
 GPU="${GPU:-0}"
 DOCKER_GPUS="${DOCKER_GPUS:-all}"
 INPUT="${INPUT:-1}"
-USB_BUS="${USB_BUS:-0}"
 DEV="${DEV:-}"
 DEV_LIST="${DEV_LIST:-}"
 DEV_GLOB="${DEV_GLOB:-}"
@@ -103,10 +102,6 @@ if [[ "$GPU" == "1" ]]; then
     DOCKER_GPU_ARGS+=(--gpus "$DOCKER_GPUS")
     DOCKER_ENV_ARGS+=(-e NVIDIA_DRIVER_CAPABILITIES="graphics,utility,display")
   fi
-fi
-
-if [[ "$USB_BUS" == "1" ]] && [[ -d /dev/bus/usb ]]; then
-  DOCKER_DEV_ARGS+=(-v /dev/bus/usb:/dev/bus/usb --device-cgroup-rule "c 189:* rmw")
 fi
 
 if [[ -n "$DEV_LIST" ]]; then

@@ -13,7 +13,6 @@ def generate_launch_description():
     joy_axis_selector_config_path = os.path.join(teleop_share, "config", "joy_axis_selector.yaml")
     joy_teleop_normal_config_path = os.path.join(bringup_share, "config", "joy_teleop_normal.yaml")
     joy_teleop_slow_config_path = os.path.join(bringup_share, "config", "joy_teleop_slow.yaml")
-    joy_teleop_estop_config_path = os.path.join(bringup_share, "config", "joy_teleop_estop.yaml")
 
 
     joy = Node(
@@ -53,14 +52,6 @@ def generate_launch_description():
         remappings=[("/cmd_vel", "/cmd_vel_normal")],
     )
 
-    joy_teleop_estop = Node(
-        package="teleop_twist_joy",
-        executable="teleop_node",
-        name="teleop_estop",
-        parameters=[joy_teleop_estop_config_path, {"use_sim_time": False}],
-        remappings=[("/cmd_vel", "/cmd_vel_estop")],
-    )
-
     joy_launcher = Node(
         package="duojin01_teleop",
         executable="joy_launcher_node",
@@ -74,7 +65,6 @@ def generate_launch_description():
             joy_axis_selector,
             joy_teleop_slow,
             joy_teleop_normal,
-            joy_teleop_estop,
             joy_launcher,
         ]
     )

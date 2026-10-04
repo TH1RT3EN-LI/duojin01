@@ -165,8 +165,6 @@ Visualization Manager:
           Value: false
         computer:
           Value: false
-        depth_cam:
-          Value: true
         imu_link:
           Value: true
         laser:
@@ -210,8 +208,6 @@ Visualization Manager:
             base_footprint:
               base_link:
                 computer:
-                  {}
-                depth_cam:
                   {}
                 imu_link:
                   {}

@@ -37,9 +37,6 @@
   <exec_depend>teleop_twist_joy</exec_depend>
   <exec_depend>twist_mux</exec_depend>
 
-  <exec_depend>duojin01_safety_watchdog</exec_depend>
-  <exec_depend>diagnostic_updater</exec_depend>
-  <exec_depend>diagnostic_msgs</exec_depend>
 
 
   <exec_depend>rviz2</exec_depend>

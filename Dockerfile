@@ -2,12 +2,13 @@ FROM ros:humble-ros-base-jammy AS dependencies
 SHELL ["/bin/bash", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN printf 'APT::Install-Recommends "false";\nAPT::Install-Suggests "false";\n' \
+      > /etc/apt/apt.conf.d/99-hardware-dependencies && \
+    apt-get update && apt-get install -y --no-install-recommends \
     build-essential cmake git git-lfs pkg-config curl ca-certificates \
     python3-pip python3-colcon-common-extensions python3-rosdep python3-pytest \
     python3-numpy python3-opencv python3-yaml python3-serial \
-    libusb-1.0-0-dev libudev-dev libyaml-cpp-dev libboost-thread-dev \
-    libgflags-dev libgoogle-glog-dev libdw-dev \
+    libboost-thread-dev \
     ros-humble-asio-cmake-module \
     && rm -rf /var/lib/apt/lists/*
 

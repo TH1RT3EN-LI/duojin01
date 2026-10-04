@@ -14,10 +14,9 @@ fi
 root_command=()
 if [[ "$(id -u)" != "0" ]]; then root_command=(sudo); fi
 "${root_command[@]}" apt-get update
-"${root_command[@]}" apt-get install -y \
+"${root_command[@]}" apt-get install -y --no-install-recommends \
   build-essential cmake pkg-config python3-pip python3-colcon-common-extensions \
-  python3-rosdep python3-pytest libusb-1.0-0-dev libudev-dev libyaml-cpp-dev \
-  libboost-thread-dev libgflags-dev libgoogle-glog-dev libdw-dev ros-humble-asio-cmake-module
+  python3-rosdep python3-pytest libboost-thread-dev ros-humble-asio-cmake-module
 source /opt/ros/humble/setup.bash
 if [[ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]]; then
   "${root_command[@]}" rosdep init

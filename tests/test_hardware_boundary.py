@@ -14,7 +14,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 BRINGUP = ROOT / "src/duojin01_bringup"
 sys.path.insert(0, str(BRINGUP))
-FORBIDDEN = re.compile(r"gazebo|ignition|ros_gz|duojin01_(?:sim|controller_emulator|gz)")
+FORBIDDEN = re.compile(
+    r"gazebo|ignition|ros_gz|orbbec|depth_cam|duojin01_(?:sim|controller_emulator|gz|safety_watchdog)")
 
 
 def load_launch(name):
@@ -33,8 +34,7 @@ def test_hardware_package_graph_has_no_simulation_dependencies():
         assert not FORBIDDEN.search(name), name
         packages[name] = tree
     assert {"duojin01_base_driver", "duojin01_camera", "duojin01_mission",
-            "duojin01_msgs", "duojin01_safety_watchdog", "lslidar_driver",
-            "orbbec_camera"} <= packages.keys()
+            "duojin01_msgs", "lslidar_driver"} <= packages.keys()
     for name, tree in packages.items():
         for element in tree:
             if element.tag.endswith("depend"):
@@ -108,14 +108,31 @@ def test_nav2_uses_real_time_without_synthetic_initial_pose(tmp_path, monkeypatc
         BRINGUP / "launch/nav2.launch.py").read_text()
 
 
-def test_disabled_depth_camera_does_not_load_optional_driver(monkeypatch):
-    from launch import LaunchContext
-    module = load_launch("navigation")
-    monkeypatch.setattr(module, "get_package_share_directory",
-                        lambda name: pytest.fail(f"Unexpected driver lookup: {name}"))
-    context = LaunchContext()
-    context.launch_configurations["use_depth_camera"] = "false"
-    assert module._create_depth_camera_actions(context) == []
+def test_command_sources_reach_base_through_plain_velocity_arbitration():
+    config = yaml.safe_load((BRINGUP / "config/twist_mux.yaml").read_text())
+    parameters = config["twist_mux"]["ros__parameters"]
+    assert {entry["topic"] for entry in parameters["topics"].values()} == {
+        "/cmd_vel", "/cmd_vel_normal", "/cmd_vel_slow"}
+    assert not parameters.get("locks")
+    nodes = {}
+    tree = ast.parse((BRINGUP / "launch/base.launch.py").read_text())
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "Node":
+            fields = {item.arg: item.value for item in node.keywords}
+            package = ast.literal_eval(fields["package"])
+            if "remappings" in fields:
+                nodes[package] = dict(ast.literal_eval(fields["remappings"]))
+    output_topic = nodes["twist_mux"]["/cmd_vel_out"]
+    assert output_topic == nodes["duojin01_base_driver"]["/cmd_vel"]
+    assert output_topic not in {entry["topic"] for entry in parameters["topics"].values()}
+
+
+def test_removed_modules_leave_no_launch_or_configuration_references():
+    removed = re.compile(r"orbbec|depth_cam|watchdog|cmd_vel_safe|cmd_vel_estop|teleop_estop")
+    for directory in (BRINGUP / "launch", BRINGUP / "config"):
+        for path in directory.rglob("*"):
+            if path.is_file() and path.suffix in {".py", ".yaml", ".rviz", ".json"}:
+                assert not removed.search(path.read_text()), path
 
 
 def test_generated_urdf_contains_only_hardware_geometry():
@@ -126,7 +143,8 @@ def test_generated_urdf_contains_only_hardware_geometry():
     assert not robot.findall(".//gazebo")
     assert not robot.findall(".//plugin")
     links = {link.attrib["name"] for link in robot.findall("link")}
-    assert {"base_footprint", "base_link", "laser", "imu_link", "depth_cam"} <= links
+    assert {"base_footprint", "base_link", "laser", "imu_link"} <= links
+    assert not any("depth_cam" in name for name in links)
     for mesh in robot.findall(".//mesh"):
         filename = mesh.attrib["filename"]
         assert filename.startswith("package://duojin01_description/")

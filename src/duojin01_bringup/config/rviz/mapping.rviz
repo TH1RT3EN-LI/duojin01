@@ -100,11 +100,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        depth_cam:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         imu_link:
           Alpha: 1
           Show Axes: false
@@ -227,8 +222,6 @@ Visualization Manager:
           Value: false
         computer:
           Value: false
-        depth_cam:
-          Value: true
         imu_link:
           Value: true
         laser:
@@ -272,8 +265,6 @@ Visualization Manager:
             base_footprint:
               base_link:
                 computer:
-                  {}
-                depth_cam:
                   {}
                 imu_link:
                   {}
