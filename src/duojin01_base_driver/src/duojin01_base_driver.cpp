@@ -12,6 +12,7 @@
 #include <vector>
 #include <array>
 #include <functional>
+#include <stdexcept>
 
 #include "io_context/io_context.hpp"
 #include "serial_driver/serial_port.hpp"
@@ -56,6 +57,35 @@ public:
         odom_z_scale_negative_ = this->declare_parameter<double>("odom_z_scale_negative", 1.0);
 
         loop_hz_ = this->declare_parameter<int>("loop_hz", 200);
+        serial_cfg_ = drivers::serial_driver::SerialPortConfig(
+            static_cast<uint32_t>(serial_baud_rate_), drivers::serial_driver::FlowControl::NONE,
+            drivers::serial_driver::Parity::NONE, drivers::serial_driver::StopBits::ONE);
+        imu_yaw_rate_bias_ = this->declare_parameter<double>("imu_yaw_rate_bias", 0.0);
+        if (!std::isfinite(imu_yaw_rate_bias_)) {
+            throw std::invalid_argument("imu_yaw_rate_bias must be finite");
+        }
+        const double imu_yaw_rate_variance =
+            this->declare_parameter<double>("imu_yaw_rate_variance", 1e-6);
+        if (!std::isfinite(imu_yaw_rate_variance) || imu_yaw_rate_variance <= 0.0) {
+            throw std::invalid_argument("imu_yaw_rate_variance must be finite and positive");
+        }
+        auto load_twist_variances = [this](const std::string &name,
+            const std::array<double, 36> &defaults) {
+            std::vector<double> diagonal;
+            for (size_t axis = 0; axis < 6; ++axis) diagonal.push_back(defaults[axis * 7]);
+            const auto values = this->declare_parameter<std::vector<double>>(name, diagonal);
+            if (values.size() != 6) throw std::invalid_argument(name + " must contain six variances");
+            std::array<double, 36> result{};
+            for (size_t axis = 0; axis < 6; ++axis) {
+                if (!std::isfinite(values[axis]) || values[axis] <= 0.0) {
+                    throw std::invalid_argument(name + " variances must be finite and positive");
+                }
+                result[axis * 7] = values[axis];
+            }
+            return result;
+        };
+        odom_twist_moving_ = load_twist_variances("odom_twist_variances_moving", duojin01::odom_twist_covariance);
+        odom_twist_stopped_ = load_twist_variances("odom_twist_variances_stopped", duojin01::odom_twist_covariance2);
 
         // -------- publishers --------
         voltage_pub_ = this->create_publisher<std_msgs::msg::Float32>("battery_voltage", 10);
@@ -78,7 +108,7 @@ public:
         // angular velocity covariance
         imu_msg_.angular_velocity_covariance[0] = 1e6;
         imu_msg_.angular_velocity_covariance[4] = 1e6;
-        imu_msg_.angular_velocity_covariance[8] = 1e-6;
+        imu_msg_.angular_velocity_covariance[8] = imu_yaw_rate_variance;
 
         // linear acceleration covariance
         imu_msg_.linear_acceleration_covariance[0] = 1e6;
@@ -102,8 +132,6 @@ public:
         auto period = std::chrono::milliseconds(static_cast<int>(1000.0 / std::max(1, loop_hz_)));
         timer_ = this->create_wall_timer(period, std::bind(&Duojin01BaseDriverNode::on_timer, this));
 
-        last_time_ = this->now();
-        last_frame_time_ = this->now();
         last_frame_steady_time_ = std::chrono::steady_clock::now();
 
         RCLCPP_INFO(this->get_logger(), "duojin01_base_driver node started");
@@ -245,7 +273,7 @@ private:
     }
     /**
      * @brief 构造并发送零速度帧到下位机，实现上位机层面的急停。调用前需确保 serial_ 非空且 is_open()。
-     * 
+     *
      * @author litianshun (litianshun.cn@gmail.com)
      * @date 2026-01-29
      */
@@ -274,10 +302,14 @@ private:
         if (shutting_down_.load(std::memory_order_acquire))
             return;
         if (serial_reconnecting_)
-            return;  
+            return;
 
         serial_reconnecting_ = true;
-        frame_ready_.store(false, std::memory_order_release);
+        {
+            std::lock_guard<std::mutex> lk(state_mtx_);
+            frame_ready_.store(false, std::memory_order_release);
+        }
+        sample_time_ready_ = false;
 
         RCLCPP_ERROR(this->get_logger(),
             "Serial error: %s — closing port and scheduling reconnect.",
@@ -329,8 +361,13 @@ private:
         // 2) 端口看似打开但长时间无数据（静默故障）
         if (serial_ && serial_->is_open())
         {
+            std::chrono::steady_clock::time_point last_received;
+            {
+                std::lock_guard<std::mutex> lk(state_mtx_);
+                last_received = last_frame_steady_time_;
+            }
             const double since_last = std::chrono::duration<double>(
-                std::chrono::steady_clock::now() - last_frame_steady_time_).count();
+                std::chrono::steady_clock::now() - last_received).count();
             if (since_last > 0.5) // 200 Hz 主循环 → 0.5 s 无帧 = 尽快重连
             {
                 handle_serial_error(
@@ -339,28 +376,21 @@ private:
             }
         }
 
-        const rclcpp::Time now = this->now();
-        double dt = (now - last_time_).seconds();
-        last_time_ = now;
-
-        if (dt <= 0.0 || dt > duojin01::MAX_DELTA_T)
-        {
-            return;
-        }
-
-        if (!get_sensor_data())
-        {
-            return;
-        }
         duojin01::VelPosData vel;
         sensor_msgs::msg::Imu imu;
         float voltage = 0.0f;
-        {
-            std::lock_guard<std::mutex> lk(state_mtx_);
-            vel = robot_vel_;
-            imu = imu_msg_;
-            voltage = power_voltage_;
+        rclcpp::Time received_stamp;
+        if (!get_sensor_data(vel, imu, voltage, received_stamp)) {
+            return;
         }
+        double dt = 0.0;
+        if (sample_time_ready_ && received_stamp > last_sample_time_) {
+            dt = (received_stamp - last_sample_time_).seconds();
+            if (dt > duojin01::MAX_DELTA_T) dt = 0.0;
+        }
+        last_sample_time_ = received_stamp;
+        sample_time_ready_ = true;
+        imu.angular_velocity.z -= imu_yaw_rate_bias_;
         vel.x = static_cast<float>(vel.x * odom_x_scale_);
         vel.y = static_cast<float>(vel.y * odom_y_scale_);
 
@@ -373,28 +403,31 @@ private:
             vel.z = static_cast<float>(vel.z * odom_z_scale_negative_);
         }
 
-        const float yaw = robot_pos_.z;
-        const float c = std::cos(yaw);
-        const float s = std::sin(yaw);
-        const float dt_f = static_cast<float>(dt);
+        if (dt > 0.0) {
+            const float yaw = robot_pos_.z;
+            const float c = std::cos(yaw);
+            const float s = std::sin(yaw);
+            const float dt_f = static_cast<float>(dt);
 
-        robot_pos_.x += (vel.x * c - vel.y * s) * dt_f;
-        robot_pos_.y += (vel.x * s + vel.y * c) * dt_f;
-        robot_pos_.z += vel.z * dt_f;
+            robot_pos_.x += (vel.x * c - vel.y * s) * dt_f;
+            robot_pos_.y += (vel.x * s + vel.y * c) * dt_f;
+            robot_pos_.z += vel.z * dt_f;
 
-        while (robot_pos_.z > duojin01::PI)
-            robot_pos_.z -= 2.0f * duojin01::PI;
-        while (robot_pos_.z < -duojin01::PI)
-            robot_pos_.z += 2.0f * duojin01::PI;
+            while (robot_pos_.z > duojin01::PI)
+                robot_pos_.z -= 2.0f * duojin01::PI;
+            while (robot_pos_.z < -duojin01::PI)
+                robot_pos_.z += 2.0f * duojin01::PI;
 
-        attitude_filter_.update(
-            static_cast<float>(imu.angular_velocity.x),
-            static_cast<float>(imu.angular_velocity.y),
-            static_cast<float>(imu.angular_velocity.z),
-            static_cast<float>(imu.linear_acceleration.x),
-            static_cast<float>(imu.linear_acceleration.y),
-            static_cast<float>(imu.linear_acceleration.z),
-            static_cast<float>(dt));
+            attitude_filter_.update(
+                static_cast<float>(imu.angular_velocity.x),
+                static_cast<float>(imu.angular_velocity.y),
+                static_cast<float>(imu.angular_velocity.z),
+                static_cast<float>(imu.linear_acceleration.x),
+                static_cast<float>(imu.linear_acceleration.y),
+                static_cast<float>(imu.linear_acceleration.z),
+                static_cast<float>(dt));
+
+        }
 
         const auto q = attitude_filter_.quaternion();
         imu.orientation.w = q.w;
@@ -402,8 +435,8 @@ private:
         imu.orientation.y = q.y;
         imu.orientation.z = q.z;
 
-        publish_odom(now, vel);
-        publish_imu(now, imu);
+        publish_odom(received_stamp, vel);
+        publish_imu(received_stamp, imu);
         publish_voltage(voltage);
     }
 
@@ -413,15 +446,17 @@ private:
      * @author litianshun (litianshun.cn@gmail.com)
      * @date 2026-01-25
      */
-    bool get_sensor_data()
+    bool get_sensor_data(duojin01::VelPosData &vel, sensor_msgs::msg::Imu &imu,
+                         float &voltage, rclcpp::Time &stamp)
     {
-        if (!frame_ready_.load(std::memory_order_acquire))
-        {
+        std::lock_guard<std::mutex> lk(state_mtx_);
+        if (!frame_ready_.exchange(false, std::memory_order_acq_rel)) {
             return false;
         }
-        frame_ready_.store(false, std::memory_order_release);
-        last_frame_time_ = this->now();
-        last_frame_steady_time_ = std::chrono::steady_clock::now();
+        vel = robot_vel_;
+        imu = imu_msg_;
+        voltage = power_voltage_;
+        stamp = latest_frame_stamp_;
         return true;
     }
 
@@ -453,7 +488,7 @@ private:
     }
 
     /**
-     * @brief 
+     * @brief
      *
      * @author litianshun (litianshun.cn@gmail.com)
      * @date 2026-01-27
@@ -518,7 +553,6 @@ private:
         }
 
         decode_frame_and_update_state(rx_buf_);
-        frame_ready_.store(true, std::memory_order_release);
     }
 
     /**
@@ -568,6 +602,9 @@ private:
             imu_msg_.angular_velocity.z = static_cast<double>(imu_raw.gyros_z_data) * duojin01::GYROSCOPE_RATIO;
 
             power_voltage_ = v;
+            latest_frame_stamp_ = this->now();
+            last_frame_steady_time_ = std::chrono::steady_clock::now();
+            frame_ready_.store(true, std::memory_order_release);
         }
     }
 
@@ -657,8 +694,8 @@ private:
             std::copy(duojin01::odom_pose_covariance2.begin(),
                       duojin01::odom_pose_covariance2.end(),
                       odom_msg_.pose.covariance.begin());
-            std::copy(duojin01::odom_twist_covariance2.begin(),
-                      duojin01::odom_twist_covariance2.end(),
+            std::copy(odom_twist_stopped_.begin(),
+                      odom_twist_stopped_.end(),
                       odom_msg_.twist.covariance.begin());
         }
         else
@@ -666,8 +703,8 @@ private:
             std::copy(duojin01::odom_pose_covariance.begin(),
                       duojin01::odom_pose_covariance.end(),
                       odom_msg_.pose.covariance.begin());
-            std::copy(duojin01::odom_twist_covariance.begin(),
-                      duojin01::odom_twist_covariance.end(),
+            std::copy(odom_twist_moving_.begin(),
+                      odom_twist_moving_.end(),
                       odom_msg_.twist.covariance.begin());
         }
 
@@ -677,7 +714,7 @@ private:
 private:
     /**
      * @brief 打开底盘串口
-     * 
+     *
      * @author litianshun (litianshun.cn@gmail.com)
      * @date 2026-02-08
      */
@@ -722,10 +759,14 @@ private:
                 RCLCPP_ERROR(this->get_logger(), "reconnected but failed to send stop: %s", e.what());
             }
 
-            start_serial_receive();
-            last_frame_time_ = this->now();
-            last_frame_steady_time_ = std::chrono::steady_clock::now();
+            {
+                std::lock_guard<std::mutex> lk(state_mtx_);
+                frame_ready_.store(false, std::memory_order_release);
+                last_frame_steady_time_ = std::chrono::steady_clock::now();
+            }
+            sample_time_ready_ = false;
             rx_count_ = 0;
+            start_serial_receive();
             serial_reconnecting_ = false;
             if (serial_retry_timer_)
             {
@@ -750,12 +791,14 @@ private:
     double odom_z_scale_negative_{1.0};
 
     int loop_hz_{200};
+    double imu_yaw_rate_bias_{0.0};
+    std::array<double, 36> odom_twist_moving_{}, odom_twist_stopped_{};
 
     // --- receive state machine ---
     int rx_count_{0}; // 0..23
     std::array<uint8_t, duojin01::RECEIVE_DATA_SIZE> rx_buf_{};
     std::atomic<bool> shutting_down_{false};
-    bool serial_reconnecting_{false};  
+    bool serial_reconnecting_{false};
 
     // --- serial EOF detection (set by io_context thread, read by ROS timer thread) ---
     std::atomic<bool> serial_eof_detected_{false};
@@ -773,8 +816,8 @@ private:
     rclcpp::TimerBase::SharedPtr serial_retry_timer_;
 
     // -------- timing --------
-    rclcpp::Time last_time_;
-    rclcpp::Time last_frame_time_; 
+    rclcpp::Time last_sample_time_, latest_frame_stamp_;
+    bool sample_time_ready_{false};
     std::chrono::steady_clock::time_point last_frame_steady_time_;
 
     // -------- serial --------

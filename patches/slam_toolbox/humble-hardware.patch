@@ -1,0 +1,380 @@
+diff --git a/include/slam_toolbox/slam_toolbox_common.hpp b/include/slam_toolbox/slam_toolbox_common.hpp
+index 4e3a5b8..3331aa2 100644
+--- a/include/slam_toolbox/slam_toolbox_common.hpp
++++ b/include/slam_toolbox/slam_toolbox_common.hpp
+@@ -152,6 +152,11 @@ protected:
+   double yaw_covariance_scale_;
+   bool first_measurement_, enable_interactive_mode_;
+ 
++  // Per-instance scan eligibility state.
++  karto::Pose2 last_processed_pose_;
++  rclcpp::Time last_processed_scan_time_{0};
++  size_t received_scan_count_{0};
++
+   // Book keeping
+   std::unique_ptr<mapper_utils::SMapper> smapper_;
+   std::unique_ptr<karto::Dataset> dataset_;
+diff --git a/include/slam_toolbox/slam_toolbox_sync.hpp b/include/slam_toolbox/slam_toolbox_sync.hpp
+index d30329a..58b84c6 100644
+--- a/include/slam_toolbox/slam_toolbox_sync.hpp
++++ b/include/slam_toolbox/slam_toolbox_sync.hpp
+@@ -21,7 +21,9 @@
+ #define SLAM_TOOLBOX__SLAM_TOOLBOX_SYNC_HPP_
+ 
+ #include <queue>
++#include <atomic>
+ #include <memory>
++#include "std_srvs/srv/trigger.hpp"
+ #include "slam_toolbox/slam_toolbox_common.hpp"
+ 
+ namespace slam_toolbox
+@@ -31,7 +33,7 @@ class SynchronousSlamToolbox : public SlamToolbox
+ {
+ public:
+   explicit SynchronousSlamToolbox(rclcpp::NodeOptions options);
+-  ~SynchronousSlamToolbox() {}
++  ~SynchronousSlamToolbox();
+   void run();
+ 
+ protected:
+@@ -48,6 +50,12 @@ protected:
+   std::queue<PosedScan> q_;
+   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::ClearQueue>> ssClear_;
+   boost::mutex q_mutex_;
++  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr processing_status_;
++  uint64_t input_scans_{0}, queued_scans_{0}, completed_scans_{0}, invalid_scans_{0};
++  bool processing_scan_{false};
++  size_t max_pending_scans_{1000};
++  std::atomic<bool> stop_queue_{false};
++  std::unique_ptr<boost::thread> queue_thread_;
+ };
+ 
+ }  // namespace slam_toolbox
+diff --git a/solvers/ceres_solver.cpp b/solvers/ceres_solver.cpp
+index 1828ed8..e9116d1 100644
+--- a/solvers/ceres_solver.cpp
++++ b/solvers/ceres_solver.cpp
+@@ -7,6 +7,7 @@
+ #include <string>
+ #include <utility>
+ #include "ceres_solver.hpp"
++#include <stdexcept>
+ 
+ namespace solver_plugins
+ {
+@@ -123,7 +124,12 @@ void CeresSolver::Configure(rclcpp::Node::SharedPtr node)
+   options_.max_num_consecutive_invalid_steps = 3;
+   options_.max_consecutive_nonmonotonic_steps =
+     options_.max_num_consecutive_invalid_steps;
+-  options_.num_threads = 50;
++  const int threads = node->declare_parameter("ceres_num_threads", 2);
++  if (threads < 1) {
++    throw std::invalid_argument("ceres_num_threads must be positive");
++  }
++  options_.num_threads = threads;
++  RCLCPP_INFO(node->get_logger(), "CeresSolver: Using %d CPU threads", threads);
+   options_.use_nonmonotonic_steps = true;
+   options_.jacobi_scaling = true;
+ 
+diff --git a/src/map_saver.cpp b/src/map_saver.cpp
+index 0633fed..d20584b 100644
+--- a/src/map_saver.cpp
++++ b/src/map_saver.cpp
+@@ -22,6 +22,21 @@
+ 
+ namespace map_saver
+ {
++namespace
++{
++std::string shellQuote(const std::string & value)
++{
++  std::string quoted = "'";
++  for (char character : value) {
++    if (character == '\'') {
++      quoted += "'\\''";
++    } else {
++      quoted += character;
++    }
++  }
++  return quoted + "'";
++}
++}  // namespace
+ 
+ /*****************************************************************************/
+ MapSaver::MapSaver(rclcpp::Node::SharedPtr node, const std::string & map_name)
+@@ -61,13 +76,13 @@ bool MapSaver::saveMapCallback(
+   std::string set_namespace;
+   const std::string namespace_str = std::string(node_->get_namespace());
+   if (!namespace_str.empty()) {
+-    set_namespace = " -r __ns:=" + namespace_str;
++    set_namespace = " -r " + shellQuote("__ns:=" + namespace_str);
+   }
+ 
+   if (name != "") {
+     RCLCPP_INFO(node_->get_logger(),
+       "SlamToolbox: Saving map as %s.", name.c_str());
+-    int rc = system(("ros2 run nav2_map_server map_saver_cli -f " + name  + " --ros-args -p map_subscribe_transient_local:=true" + set_namespace).c_str());
++    int rc = system(("ros2 run nav2_map_server map_saver_cli -f " + shellQuote(name)  + " --ros-args -p map_subscribe_transient_local:=true" + set_namespace).c_str());
+     if (rc == 0) {
+       response->result = response->RESULT_SUCCESS;
+     } else {
+diff --git a/src/slam_toolbox_common.cpp b/src/slam_toolbox_common.cpp
+index 77ac6b1..d24226d 100644
+--- a/src/slam_toolbox_common.cpp
++++ b/src/slam_toolbox_common.cpp
+@@ -20,6 +20,8 @@
+ #include <vector>
+ #include <string>
+ #include <chrono>
++#include <cmath>
++#include <stdexcept>
+ #include "slam_toolbox/slam_toolbox_common.hpp"
+ #include "slam_toolbox/serialization.hpp"
+ 
+@@ -321,7 +323,9 @@ void SlamToolbox::loadPoseGraphByParams()
+         slam_toolbox::srv::DeserializePoseGraph::Request::START_AT_GIVEN_POSE;
+     }
+ 
+-    deserializePoseGraphCallback(nullptr, req, resp);
++    if (!deserializePoseGraphCallback(nullptr, req, resp)) {
++      throw std::runtime_error("Failed to load requested pose graph: " + filename);
++    }
+   }
+ }
+ 
+@@ -504,46 +508,37 @@ bool SlamToolbox::shouldProcessScan(
+   const Pose2 & pose)
+ /*****************************************************************************/
+ {
+-  static Pose2 last_pose;
+-  static rclcpp::Time last_scan_time = rclcpp::Time(0.);
+-  static double min_dist2 =
+-    smapper_->getMapper()->getParamMinimumTravelDistance() *
+-    smapper_->getMapper()->getParamMinimumTravelDistance();
+-  static int scan_ctr = 0;
+-  scan_ctr++;
+-
+-  // we give it a pass on the first measurement to get the ball rolling
++  const rclcpp::Time stamp(scan->header.stamp);
++  ++received_scan_count_;
+   if (first_measurement_) {
+-    last_scan_time = scan->header.stamp;
+-    last_pose = pose;
++    last_processed_scan_time_ = stamp;
++    last_processed_pose_ = pose;
+     first_measurement_ = false;
+     return true;
+   }
+-
+-  // we are in a paused mode, reject incomming information
+-  if (isPaused(NEW_MEASUREMENTS)) {
++  if (isPaused(NEW_MEASUREMENTS) || received_scan_count_ % throttle_scans_ != 0) {
+     return false;
+   }
+-
+-  // throttled out
+-  if ((scan_ctr % throttle_scans_) != 0) {
++  if (stamp <= last_processed_scan_time_ ||
++    stamp - last_processed_scan_time_ < minimum_time_interval_)
++  {
+     return false;
+   }
+ 
+-  // not enough time
+-  if (rclcpp::Time(scan->header.stamp) - last_scan_time < minimum_time_interval_) {
++  const double minimum_distance = smapper_->getMapper()->getParamMinimumTravelDistance();
++  // Karto exports this getter in degrees while poses and ROS parameters use radians.
++  const double minimum_heading = karto::math::DegreesToRadians(
++    smapper_->getMapper()->getParamMinimumTravelHeading());
++  const double difference = pose.GetHeading() - last_processed_pose_.GetHeading();
++  const double heading = std::abs(std::atan2(std::sin(difference), std::cos(difference)));
++  const bool translated = last_processed_pose_.SquaredDistance(pose) >=
++    0.8 * minimum_distance * minimum_distance;
++  const bool rotated = heading >= minimum_heading;
++  if (!translated && !rotated) {
+     return false;
+   }
+-
+-  // check moved enough, within 10% for correction error
+-  const double dist2 = last_pose.SquaredDistance(pose);
+-  if (dist2 < 0.8 * min_dist2 || scan_ctr < 5) {
+-    return false;
+-  }
+-
+-  last_pose = pose;
+-  last_scan_time = scan->header.stamp;
+-
++  last_processed_pose_ = pose;
++  last_processed_scan_time_ = stamp;
+   return true;
+ }
+ 
+@@ -652,6 +647,7 @@ bool SlamToolbox::mapCallback(
+   std::shared_ptr<nav_msgs::srv::GetMap::Response> res)
+ /*****************************************************************************/
+ {
++  updateMap();
+   if (map_.map.info.width && map_.map.info.height) {
+     boost::mutex::scoped_lock lock(smapper_mutex_);
+     *res = map_;
+@@ -795,7 +791,7 @@ bool SlamToolbox::deserializePoseGraphCallback(
+ 
+   if (filename.empty()) {
+     RCLCPP_WARN(get_logger(), "No map file given!");
+-    return true;
++    return false;
+   }
+ 
+   // if we're inside the snap, we need to write to commonly accessible space
+@@ -809,7 +805,7 @@ bool SlamToolbox::deserializePoseGraphCallback(
+   if (!serialization::read(filename, *mapper, *dataset, shared_from_this())) {
+     RCLCPP_ERROR(get_logger(), "DeserializePoseGraph: Failed to read "
+       "file: %s.", filename.c_str());
+-    return true;
++    return false;
+   }
+   RCLCPP_DEBUG(get_logger(), "DeserializePoseGraph: Successfully read file.");
+ 
+diff --git a/src/slam_toolbox_sync.cpp b/src/slam_toolbox_sync.cpp
+index 3e21886..85e9a01 100644
+--- a/src/slam_toolbox_sync.cpp
++++ b/src/slam_toolbox_sync.cpp
+@@ -20,6 +20,8 @@
+ #include "slam_toolbox/slam_toolbox_sync.hpp"
+ 
+ #include <memory>
++#include <sstream>
++#include <stdexcept>
+ namespace slam_toolbox
+ {
+ 
+@@ -28,12 +30,48 @@ SynchronousSlamToolbox::SynchronousSlamToolbox(rclcpp::NodeOptions options)
+ : SlamToolbox(options)
+ /*****************************************************************************/
+ {
++  const int limit = this->declare_parameter("max_pending_scans", 1000);
++  if (limit < 1) {
++    throw std::invalid_argument("max_pending_scans must be positive");
++  }
++  max_pending_scans_ = static_cast<size_t>(limit);
+   ssClear_ = this->create_service<slam_toolbox::srv::ClearQueue>("slam_toolbox/clear_queue",
+       std::bind(&SynchronousSlamToolbox::clearQueueCallback, this,
+       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+ 
+-  threads_.push_back(std::make_unique<boost::thread>(
+-      boost::bind(&SynchronousSlamToolbox::run, this)));
++  processing_status_ = this->create_service<std_srvs::srv::Trigger>(
++    "slam_toolbox/processing_status",
++    [this](const std_srvs::srv::Trigger::Request::SharedPtr,
++      std_srvs::srv::Trigger::Response::SharedPtr response) {
++      const auto clock = this->get_clock();
++      const auto clock_nanoseconds = clock->now().nanoseconds();
++      const bool clock_active = clock->ros_time_is_active();
++      boost::mutex::scoped_lock lock(q_mutex_);
++      std::ostringstream status;
++      status << "{\"clock_nanoseconds\":" << clock_nanoseconds
++             << ",\"clock_active\":" << (clock_active ? "true" : "false")
++             << ",\"received\":" << input_scans_
++             << ",\"accepted\":" << queued_scans_
++             << ",\"completed\":" << completed_scans_
++             << ",\"invalid\":" << invalid_scans_
++             << ",\"queued\":" << q_.size()
++             << ",\"processing\":" << (processing_scan_ ? "true" : "false") << "}";
++      response->success = true;
++      response->message = status.str();
++    });
++
++  queue_thread_ = std::make_unique<boost::thread>(
++    boost::bind(&SynchronousSlamToolbox::run, this));
++}
++
++/*****************************************************************************/
++SynchronousSlamToolbox::~SynchronousSlamToolbox()
++/*****************************************************************************/
++{
++  stop_queue_ = true;
++  if (queue_thread_ && queue_thread_->joinable()) {
++    queue_thread_->join();
++  }
+ }
+ 
+ /*****************************************************************************/
+@@ -41,7 +79,7 @@ void SynchronousSlamToolbox::run()
+ /*****************************************************************************/
+ {
+   rclcpp::Rate r(100);
+-  while (rclcpp::ok()) {
++  while (rclcpp::ok() && !stop_queue_) {
+     if (!isPaused(PROCESSING)) {
+       PosedScan scan_w_pose(nullptr, karto::Pose2()); // dummy, updated in critical section
+       bool queue_empty = true;
+@@ -51,6 +89,7 @@ void SynchronousSlamToolbox::run()
+         if (!queue_empty) {
+           scan_w_pose = q_.front();
+           q_.pop();
++          processing_scan_ = true;
+ 
+           if (q_.size() > 10) {
+             RCLCPP_WARN(get_logger(), "Queue size has grown to: %i. "
+@@ -61,6 +100,11 @@ void SynchronousSlamToolbox::run()
+       }
+       if (!queue_empty) {
+         addScan(getLaser(scan_w_pose.scan), scan_w_pose);
++        {
++          boost::mutex::scoped_lock lock(q_mutex_);
++          processing_scan_ = false;
++          ++completed_scans_;
++        }
+         continue;
+       }
+     }
+@@ -74,12 +118,18 @@ void SynchronousSlamToolbox::laserCallback(
+   sensor_msgs::msg::LaserScan::ConstSharedPtr scan)
+ /*****************************************************************************/
+ {
++  {
++    boost::mutex::scoped_lock lock(q_mutex_);
++    ++input_scans_;
++  }
+   // store scan header
+   scan_header = scan->header;
+   // no odom info
+   Pose2 pose;
+   if (!pose_helper_->getOdomPose(pose, scan->header.stamp)) {
+     RCLCPP_WARN(get_logger(), "Failed to compute odom pose");
++    boost::mutex::scoped_lock lock(q_mutex_);
++    ++invalid_scans_;
+     return;
+   }
+ 
+@@ -89,13 +139,21 @@ void SynchronousSlamToolbox::laserCallback(
+   if (!laser) {
+     RCLCPP_WARN(get_logger(), "SynchronousSlamToolbox: Failed to create laser"
+       " device for %s; discarding scan", scan->header.frame_id.c_str());
++    boost::mutex::scoped_lock lock(q_mutex_);
++    ++invalid_scans_;
+     return;
+   }
+ 
+   // if sync and valid, add to queue
+   if (shouldProcessScan(scan, pose)) {
+     boost::mutex::scoped_lock lock(q_mutex_);
++    if (q_.size() >= max_pending_scans_) {
++      ++invalid_scans_;
++      RCLCPP_ERROR(get_logger(), "Offline processing queue limit reached; reduce replay rate");
++      return;
++    }
+     q_.push(PosedScan(scan, pose));
++    ++queued_scans_;
+   }
+ }
+ 
+@@ -108,6 +166,8 @@ bool SynchronousSlamToolbox::clearQueueCallback(
+ {
+   RCLCPP_INFO(get_logger(), "SynchronousSlamToolbox: "
+     "Clearing all queued scans to add to map.");
++  boost::mutex::scoped_lock lock(q_mutex_);
++  invalid_scans_ += q_.size();
+   while (!q_.empty()) {
+     q_.pop();
+   }

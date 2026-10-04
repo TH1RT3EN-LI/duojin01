@@ -14,12 +14,12 @@
 | `duojin01_camera` | USB 彩色相机、图像/内参发布和相机标定 |
 | `duojin01_description` | 真机 URDF、底盘/雷达/IMU 模型与 TF |
 | `duojin01_bringup` | 统一启动和配置，集成 EKF、速度仲裁、建图、定位与 Nav2 |
-| `duojin01_slam_tools` | 地图保存客户端，地图数据写入工作区 `maps/` |
+| `duojin01_slam_tools` | 完整地图快照、校验清单、离线建图和回放输入过滤 |
 | `duojin01_teleop` | 键盘控制；手柄使用 bringup 中的 Joy 配置 |
 | `duojin01_mission` | 导航任务、相机捕获、AprilTag 识别与机械臂串口 G-code 工具 |
 | `duojin01_msgs` | 任务识别结果等自定义接口 |
 
-`robot_localization`、`twist_mux`、`slam_toolbox`、Nav2、Joy 和 Foxglove 是外部 ROS 依赖，由 Docker/rosdep 安装。深度相机 SDK、深度相机模型和启动入口、安全看门狗、手柄急停输入及锁定配置已删除。
+`robot_localization`、`twist_mux`、`slam_toolbox`、Nav2、Joy 和 Foxglove 是外部 ROS 依赖，由 Docker/rosdep 安装；SLAM Toolbox 另外从固定源码构建并应用项目补丁。深度相机 SDK、深度相机模型和启动入口、安全看门狗、手柄急停输入及锁定配置已删除。
 
 ## 底盘与速度链路
 
@@ -81,8 +81,10 @@ AprilTag 工具位于 `duojin01_mission.april_tag_detector`，输出 `duojin01_m
 
 ## 工作区与 Docker 数据
 
-Docker 默认将源码和地图挂载到 `/ws`，安装好的 ROS 包在 `/opt/duojin01/install`。开发构建覆盖层仅使用 `/ws/install/hardware`。`DUOJIN01_WORKSPACE_ROOT` 同时控制 Python 导航选图和 C++ 地图保存的根目录；原生 `source.sh` 默认使用当前仓库根目录，也保留用户显式设置的绝对路径。
+Docker 默认将源码和地图挂载到 `/ws`，安装好的 ROS 包在 `/opt/duojin01/install`。开发构建覆盖层使用 `/ws/install/slam_backend` 与 `/ws/install/hardware`，均检查目标架构。`DUOJIN01_WORKSPACE_ROOT` 同时控制导航选图和 Python 地图保存的根目录；原生 `source.sh` 默认使用当前仓库根目录，也保留用户显式设置的绝对路径。
 
 依赖边界和离线启动描述检查位于 `tests/test_hardware_boundary.py`；运行 `scripts/validate_hardware.sh` 不会打开串口或发出运动命令。
 
 雷达测试位于 `lslidar_driver/test/test_x10_driver.cpp`，运行 `scripts/test_lidar.sh` 构建到独立的 `build/lidar-tests`，不会加入日常 `install/hardware` 覆盖层。测试只使用构造的协议数据与容器内伪终端。
+
+在线 / 离线 SLAM 的接口、录包 QoS、地图快照和升级分析见 [SLAM 升级与验证](docs/slam-upgrade-review.md)。

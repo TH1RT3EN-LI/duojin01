@@ -27,6 +27,7 @@ def generate_launch_description():
         launch_arguments={
             "use_foxglove": use_foxglove,
             "use_teleop": LaunchConfiguration("use_teleop"),
+            "base_params_file": LaunchConfiguration("base_params_file"),
             "base_serial_port": LaunchConfiguration("base_serial_port"),
             "base_serial_baudrate": LaunchConfiguration("base_serial_baudrate"),
             "lidar_serial_port": LaunchConfiguration("lidar_serial_port"),
@@ -41,6 +42,8 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             os.path.join(bringup_share, "launch", "slam.launch.py")
         ),
+        launch_arguments={key: LaunchConfiguration(key) for key in
+                          ("slam_params_file", "pose_graph", "map_start_pose", "start_at_dock")}.items(),
     )
 
     rviz_node = Node(
@@ -55,9 +58,14 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument("slam_params_file", default_value=os.path.join(bringup_share, "config", "slam_toolbox.yaml")),
+            DeclareLaunchArgument("pose_graph", default_value=""),
+            DeclareLaunchArgument("map_start_pose", default_value=""),
+            DeclareLaunchArgument("start_at_dock", default_value="false"),
             DeclareLaunchArgument("use_rviz", default_value="true"),
             DeclareLaunchArgument("use_foxglove", default_value="true"),
             DeclareLaunchArgument("use_teleop", default_value="true"),
+            DeclareLaunchArgument("base_params_file", default_value=os.path.join(bringup_share, "config", "base_driver.yaml")),
             DeclareLaunchArgument("base_serial_port", default_value="/dev/duojin01_controller"),
             DeclareLaunchArgument("base_serial_baudrate", default_value="115200"),
             DeclareLaunchArgument("lidar_serial_port", default_value="/dev/lslidar"),

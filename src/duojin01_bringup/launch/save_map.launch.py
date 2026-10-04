@@ -22,6 +22,8 @@ def generate_launch_description():
             },
             {
                 "wait_timeout": ParameterValue(wait_timeout, value_type=float),
+                "response_timeout": ParameterValue(LaunchConfiguration("response_timeout"), value_type=float),
+                "serialize_graph": ParameterValue(LaunchConfiguration("serialize_graph"), value_type=bool),
                 "use_sim_time": False,
             },
         ],
@@ -32,6 +34,8 @@ def generate_launch_description():
             DeclareLaunchArgument("map_name", default_value="auto"),
             DeclareLaunchArgument("output_dir", default_value="maps"),
             DeclareLaunchArgument("wait_timeout", default_value="30"),
+            DeclareLaunchArgument("response_timeout", default_value="30"),
+            DeclareLaunchArgument("serialize_graph", default_value="true"),
             save_map_client,
         ]
     )

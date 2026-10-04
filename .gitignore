@@ -9,6 +9,7 @@ core.*
 __pycache__/
 *.pyc
 .pytest_cache/
+.cache/
 ws/
 *.tar
 *.tar.part.*

@@ -22,7 +22,7 @@ def _create_nav_actions(context, nav2_share: str):
 
     try:
         map_yaml = resolve_map_yaml(LaunchConfiguration("map").perform(context), PACKAGE_NAME)
-    except (FileNotFoundError, RuntimeError) as exc:
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
         raise RuntimeError(f"[nav2] {exc}") from exc
 
     nav2_launch = IncludeLaunchDescription(

@@ -15,7 +15,7 @@ root_command=()
 if [[ "$(id -u)" != "0" ]]; then root_command=(sudo); fi
 "${root_command[@]}" apt-get update
 "${root_command[@]}" apt-get install -y --no-install-recommends \
-  build-essential cmake pkg-config python3-pip python3-colcon-common-extensions \
+  build-essential cmake git curl ca-certificates pkg-config python3-pip python3-colcon-common-extensions \
   python3-rosdep python3-pytest libboost-thread-dev ros-humble-asio-cmake-module
 source /opt/ros/humble/setup.bash
 if [[ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]]; then
@@ -23,5 +23,7 @@ if [[ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]]; then
 fi
 rosdep update --rosdistro humble
 rosdep install --from-paths "$hardware_root/src" --ignore-src --rosdistro humble -y
-python3 -m pip install --user -r "$hardware_root/requirements-hardware.txt"
+"${root_command[@]}" python3 "$hardware_root/scripts/fix_humble_cmake.py"
+CMAKE_BUILD_PARALLEL_LEVEL="${BUILD_JOBS:-2}" PIP_CONSTRAINT="$hardware_root/requirements-build.txt" \
+  python3 -m pip install --user -r "$hardware_root/requirements-hardware.txt" cmake
 echo "Dependencies installed. Run ./scripts/build_hardware.sh and source ./source.sh."

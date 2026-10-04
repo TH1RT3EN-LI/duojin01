@@ -95,6 +95,7 @@ def test_nav2_uses_real_time_without_synthetic_initial_pose(tmp_path, monkeypatc
     monkeypatch.setenv("USE_SIM_TIME", "true")
     map_file = tmp_path / "0.yaml"
     map_file.write_text("image: 0.pgm\nresolution: 0.05\norigin: [0, 0, 0]\n")
+    (tmp_path / "0.pgm").write_bytes(b"P5\n1 1\n255\n\xff")
     context = LaunchContext()
     context.launch_configurations["map"] = str(map_file)
     actions = load_launch("nav2")._create_nav_actions(
@@ -197,8 +198,9 @@ def test_container_and_native_workspace_use_persistent_hardware_maps(tmp_path, m
     from duojin01_bringup import map_paths
     monkeypatch.setenv("DUOJIN01_WORKSPACE_ROOT", str(tmp_path))
     (tmp_path / "maps").mkdir()
+    (tmp_path / "maps/test.pgm").write_bytes(b"P5\n1 1\n255\n\xff")
     for name in ("2", "12", "5"):
-        (tmp_path / "maps" / f"{name}.yaml").write_text("image: test.pgm\n")
+        (tmp_path / "maps" / f"{name}.yaml").write_text("image: test.pgm\nresolution: 0.05\norigin: [0, 0, 0]\n")
     assert map_paths.get_workspace_root() == tmp_path
     assert map_paths.pick_latest_map_yaml() == str(tmp_path / "maps/12.yaml")
     assert map_paths.resolve_map_yaml("maps/5.yaml") == str(tmp_path / "maps/5.yaml")

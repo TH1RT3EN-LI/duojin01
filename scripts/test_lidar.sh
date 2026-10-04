@@ -2,6 +2,8 @@
 set -eo pipefail
 hardware_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$hardware_root/source.sh"
+cmake_tool_directory="$(python3 -c 'import cmake; print(cmake.CMAKE_BIN_DIR)')"
+export PATH="$cmake_tool_directory:$PATH"
 lidar_test_root="${LIDAR_TEST_ROOT:-$hardware_root/build/lidar-tests}"
 export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-2}"
 colcon --log-base "$lidar_test_root/log" build \

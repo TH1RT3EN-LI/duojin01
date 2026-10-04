@@ -95,10 +95,13 @@ if [[ "$GPU" == "1" ]]; then
     if [[ "${AMD_DRI3_FIX:-1}" == "1" ]]; then
       DOCKER_ENV_ARGS+=(-e LIBGL_DRI3_DISABLE=1)
     fi
-  else
+  elif [[ ! -f /etc/nv_tegra_release && ! -c /dev/nvidiactl ]]; then
     echo "GPU=1 but /dev/dri not found on host, falling back to software rendering." >&2
   fi
-  if [[ -c /dev/nvidiactl ]] || command -v nvidia-smi >/dev/null 2>&1; then
+  if [[ "$(uname -m)" == "aarch64" && -f /etc/nv_tegra_release ]]; then
+    DOCKER_GPU_ARGS+=(--runtime=nvidia)
+    DOCKER_ENV_ARGS+=(-e NVIDIA_VISIBLE_DEVICES="${DOCKER_GPUS}" -e NVIDIA_DRIVER_CAPABILITIES="graphics,utility,display")
+  elif [[ -c /dev/nvidiactl ]] || command -v nvidia-smi >/dev/null 2>&1; then
     DOCKER_GPU_ARGS+=(--gpus "$DOCKER_GPUS")
     DOCKER_ENV_ARGS+=(-e NVIDIA_DRIVER_CAPABILITIES="graphics,utility,display")
   fi
@@ -144,6 +147,7 @@ if [[ -n "$DEV" ]]; then
 fi
 
 args=(
+  --init
   --name "$NAME"
   -v "$WS_DIR":/ws
   -w /ws
@@ -201,6 +205,14 @@ if [[ "$GUI" == "1" ]]; then
     args+=(-e DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS")
     [[ -n "$HOST_XDG_RUNTIME_DIR" ]] && [[ -S "${HOST_XDG_RUNTIME_DIR}/bus" ]] && args+=(-v "${HOST_XDG_RUNTIME_DIR}/bus:${HOST_XDG_RUNTIME_DIR}/bus")
   fi
+fi
+
+host_architecture="$(uname -m)"
+case "$host_architecture" in x86_64) expected_architecture=amd64 ;; aarch64) expected_architecture=arm64 ;; *) expected_architecture="" ;; esac
+image_architecture="$(docker image inspect --format '{{.Architecture}}' "$IMAGE")"
+if [[ -n "$expected_architecture" && "$image_architecture" != "$expected_architecture" ]]; then
+  echo "Image architecture $image_architecture does not match host $expected_architecture. Build locally or select IMAGE." >&2
+  exit 1
 fi
 
 if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from ament_index_python.packages import get_package_prefix
+from duojin01_slam_tools.snapshots import validate_map
 
 
 _PACKAGE_NAME = "duojin01_bringup"
@@ -49,8 +50,10 @@ def pick_latest_map_yaml(package_name: str = _PACKAGE_NAME) -> str:
 
     if numeric_maps:
         numeric_maps.sort(key=lambda item: item[0])
+        validate_map(numeric_maps[-1][1])
         return str(numeric_maps[-1][1])
     if newest_map is not None:
+        validate_map(newest_map)
         return str(newest_map)
 
     raise FileNotFoundError(
@@ -71,5 +74,5 @@ def resolve_map_yaml(map_value: str, package_name: str = _PACKAGE_NAME) -> str:
     resolved = path.resolve(strict=False)
     if not resolved.is_file():
         raise FileNotFoundError(f"Map yaml not found: {resolved}")
-
+    validate_map(resolved)
     return str(resolved)

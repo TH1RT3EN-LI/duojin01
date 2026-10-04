@@ -6,10 +6,24 @@ if [[ ! -r /opt/ros/humble/setup.bash ]]; then
   return 1 2>/dev/null || exit 1
 fi
 source /opt/ros/humble/setup.bash
+if [[ -r /opt/duojin01/slam_backend/setup.bash ]]; then
+  source /opt/duojin01/slam_backend/setup.bash
+fi
 if [[ -r /opt/duojin01/install/setup.bash ]]; then
   source /opt/duojin01/install/setup.bash
 fi
+if [[ -r "$_duojin01_hardware_root/install/slam_backend/setup.bash" ]]; then
+  if [[ "$(cat "$_duojin01_hardware_root/install/slam_backend/.target_architecture" 2>/dev/null)" != "$(uname -m)" ]]; then
+    echo "SLAM overlay architecture is stale or incompatible; rebuild with ./scripts/build_hardware.sh." >&2
+    return 1 2>/dev/null || exit 1
+  fi
+  source "$_duojin01_hardware_root/install/slam_backend/setup.bash"
+fi
 if [[ -r "$_duojin01_hardware_root/install/hardware/setup.bash" ]]; then
+  if [[ "$(cat "$_duojin01_hardware_root/install/hardware/.target_architecture" 2>/dev/null)" != "$(uname -m)" ]]; then
+    echo "Hardware overlay architecture is stale or incompatible; rebuild with ./scripts/build_hardware.sh." >&2
+    return 1 2>/dev/null || exit 1
+  fi
   source "$_duojin01_hardware_root/install/hardware/setup.bash"
 elif [[ ! -r /opt/duojin01/install/setup.bash ]]; then
   echo "Hardware workspace has not been built. Run ./scripts/build_hardware.sh first." >&2

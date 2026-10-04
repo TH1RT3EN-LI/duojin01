@@ -5,7 +5,7 @@
 - 固定提交：`ecd9a836a922db714236aba7a0f54508adcb7e0e`
 - 上游发布标识：`LSLIDAR_ROS2_V5.1.3_250822`，见本目录官方 README。
 - 本地包版本：`lslidar_driver` 和 `lslidar_msgs` 均为 `5.1.3`。上游的 CMake/package.xml 仍写 `5.1.1`；本地将打包版本与其 README 发布标识对齐。
-- 核对日期：2026-10-04。
+- 核对日期：2026-10-05；重新查询官方 `master`，仍为上述固定提交，未出现更新提交。
 
 旧 M10P/N10P 驱动及其旧消息文件已从当前工作树移除。新版本保留官方统一驱动的 X10、CX、CH、LS 实现；Duojin01 的默认入口是 X10/N10Plus。源文件和本目录 LICENSE 使用 Apache-2.0。
 

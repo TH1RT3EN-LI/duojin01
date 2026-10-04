@@ -115,7 +115,7 @@ def generate_launch_description():
             executable="duojin01_base_driver_node",  
             name="base_driver",
             output="screen",
-            parameters=[{
+            parameters=[LaunchConfiguration("base_params_file"), {
                 "use_sim_time": False,
                 "usart_port_name": base_serial_port,
                 "serial_baud_rate": ParameterValue(base_serial_baudrate, value_type=int),
@@ -129,6 +129,7 @@ def generate_launch_description():
             DeclareLaunchArgument("use_lidar", default_value="true"),
             DeclareLaunchArgument("use_teleop", default_value="true"),
             DeclareLaunchArgument("base_serial_port", default_value="/dev/duojin01_controller"),
+            DeclareLaunchArgument("base_params_file", default_value=os.path.join(bringup_share, "config", "base_driver.yaml")),
             DeclareLaunchArgument("base_serial_baudrate", default_value="115200"),
             DeclareLaunchArgument("lidar_serial_port", default_value="/dev/lslidar"),
             DeclareLaunchArgument("lidar_model", default_value="N10Plus"),

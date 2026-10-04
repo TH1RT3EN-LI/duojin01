@@ -1,0 +1,127 @@
+# 在线 / 离线 SLAM 升级与验证
+
+目标平台：Jetson Orin Nano、Ubuntu 22.04、ROS 2 Humble。当前板卡内存容量和 JetPack 版本尚未确认。在线保留二维激光 SLAM Toolbox + 麦克纳姆底盘 EKF；固定地图导航继续使用 AMCL / Nav2。
+
+## 已落实的更改
+
+| 环节 | 已确认的问题 | 当前实现 |
+| --- | --- | --- |
+| 底盘原始里程计 | 定时器每次都推进积分时钟，只有新反馈时积分；低于 200 Hz 的反馈会少积分 | 按有效反馈帧接收时间积分；消费反馈和时间戳使用同一把锁；首帧、时钟倒退和重连不累积跨段时间 |
+| 串口配置 | 配置对象先于 ROS 波特率参数构造 | 使用声明后的波特率重新构造串口配置 |
+| IMU / 速度噪声 | 偏置和协方差无法按实测数据配置 | 新增 `base_driver.yaml`、陀螺仪 Z 轴偏置和方差、移动 / 静止的六轴速度方差；入口支持 `base_params_file` |
+| SLAM 输入筛选 | Humble 的外层判断只看平移；原地转动会漏掉应处理的扫描 | 接受达到平移或航向阈值的扫描；处理角度跨 ±π；移除前几帧的额外丢弃；状态和阈值按实例读取 |
+| Karto 单位 | `getParamMinimumTravelHeading()` 返回角度，ROS 参数和位姿使用弧度 | 在输入筛选中明确转换单位，运行测试覆盖此边界 |
+| Ceres | 官方 Humble 代码写死 50 线程 | 新增 `ceres_num_threads`，Orin 配置默认 2 线程 |
+| 地图输出 | 只有栅格图，不能续建；等待服务响应没有截止时间 | 带超时的客户端；保存 `.yaml`、`.pgm`、`.posegraph`、`.data` 和 SHA256 清单；YAML 最后发布，失败回滚，不覆盖已有地图 |
+| 地图最新状态 | 栅格发布周期可能落后于已处理的扫描 | 保存前通过 `dynamic_map` 刷新栅格；导出路径支持空格和引号 |
+| 位姿图续建 | 原版读取失败仍返回成功，指定旧图后可能继续生成新图 | 加载失败明确终止；建图节点退出后结束整个启动流程 |
+| 离线建图 | 没有独立工作流；录包时钟首次切换可能清空早到的 TF | 独立 ROS 域、暂停启动并确认 SLAM 已接收录包时钟，再播放传感器数据；过滤 TF 所有权，校验计数与队列，再导出快照 |
+| 构建 | apt 的原版库不会包含本项目修复，ARM64 AprilTag 需要源码构建 | 校验源码和补丁，单独构建 SLAM 覆盖层；固定 PEP 517 构建工具版本；编译默认 2 作业、1 包并行 |
+| ARM64 ROS 依赖 / 工具链 | CMake 3.22 的 ARM64 配置重复出现找库失败；仅改 rcutils 导出不充分 | 固定 CMake 3.27.9，并按上游修复去掉多余的 `-latomic` 导出；先检查实际库的符号与依赖，不改动库二进制 |
+
+原始反馈尚无设备时间戳，当前使用主机收到有效帧的时间；USB 延迟和一个定时周期内覆盖多个反馈仍可能影响积分。EKF 本来只融合底盘速度和 IMU 角速度，所以原始 `/odom` 的修复不能解释成此前 EKF 距离也按同一比例错误。
+
+默认协方差保留原有权重，尚未用实测噪声重新标定。不要仅因增加了配置接口，就认为原有 IMU 方差 `1e-6` 已得到验证。
+
+## SLAM 源码与构建边界
+
+固定 [SLAM Toolbox Humble 2.6.10](https://github.com/SteveMacenski/slam_toolbox/tree/8293d21fe5c816d0405e0cc1f3eb46c70659c267)，提交 `8293d21fe5c816d0405e0cc1f3eb46c70659c267`。来源、下载 SHA256 和补丁名称在 `patches/slam_toolbox/source.json`；项目修复在 `humble-hardware.patch`。此 Karto 实现的角度 getter 可以在 [固定源码](https://github.com/SteveMacenski/slam_toolbox/blob/8293d21fe5c816d0405e0cc1f3eb46c70659c267/lib/karto_sdk/src/Mapper.cpp)核对。
+
+`scripts/prepare_slam_backend.py` 校验压缩包、应用补丁，源码放入忽略目录 `.cache/slam_backend/`。补丁操作隔离父目录的 Git 上下文，并用反向检查确认实际源码已包含修改；缓存只写了清单却没有补丁时会重建。`build_slam_backend.sh` 构建到 `install/slam_backend`，然后才构建 10 个真机包。运行时 `hardware_build.json` 记录实际源码和补丁校验值，地图快照也保存此信息及 SLAM 参数。直接执行普通 `colcon build` 不足以生成这个补丁覆盖层，请使用项目构建脚本。
+
+官方较新发行线不能直接当作 Humble 的更新。当前保留兼容 Humble 的版本，并对具体问题施加小范围补丁。
+
+ARM64 构建还复现了 [rcutils #525](https://github.com/ros2/rcutils/issues/525)。Docker 与 Ubuntu 22.04 依赖安装入口通过 `scripts/fix_humble_cmake.py` 应用 [上游 #528](https://github.com/ros2/rcutils/pull/528) 的导出修复；新版本已无该标志时不修改。如果实际二进制仍需额外原子符号而没有直接链接 `libatomic`，检查会失败，不会跳过依赖验证。
+
+重复配置显示，导出修复本身不能保证 CMake 3.22 的 ARM64 交叉构建通过。项目构建工具另固定为 CMake 3.27.9，避免依赖系统默认版本；仍以完整镜像构建与实际运行测试为验收条件。此现象来自当前跨架构验证环境，不推断所有原生 Orin 都有相同故障。
+
+## 录包
+
+先启动实际底盘和雷达，确保 `base_footprint -> laser`、`base_footprint -> imu_link` 的标定和 TF 正确。随后执行：
+
+```bash
+./scripts/record_slam.sh bags/run01
+# Ctrl+C 正常结束录包，让 rosbag2 写完 metadata.yaml
+```
+
+录制 `/scan`、`/odom`、`/imu`、`/odometry/filtered`、`/tf`、`/tf_static`、`/diagnostics`，使用 SQLite。静态 TF 使用 transient-local QoS，录包后启动的记录器仍能收到已发布的静态变换。节点参数放入相邻的 `run01.configuration/`。参数不可用时会提示，应检查该目录与节点状态。
+
+不要通过强制杀死记录器结束采集。容器默认只持久化 `/ws`，录包与地图应写入此工作区。
+
+## 独立离线回放
+
+```bash
+# 保留录包中的 odom -> base_footprint：评估原有里程计链路
+ros2 run duojin01_slam_tools offline_mapping /ws/bags/run01 \
+  --odom-source recorded --output-dir /ws/maps --map-name run01_recorded
+
+# 从原始底盘速度 / IMU 重新运行 EKF：评估偏置与方差修改
+ros2 run duojin01_slam_tools offline_mapping /ws/bags/run01 \
+  --odom-source ekf --output-dir /ws/maps --map-name run01_ekf
+```
+
+回放默认 ROS 域 97，必须区别于在线机器人所在域；默认速率 0.5，可用 `--rate` 调整。离线入口只启动数据过滤节点、同步 SLAM，以及按需启动的 EKF。录包中的 `map -> odom` 被删除；重跑 EKF 时也删除旧的 `odom -> base_footprint`。只播放白名单中的传感器话题，不播放速度命令。
+
+播放器以暂停状态启动，先输出 `/clock`；控制器确认 SLAM 的 ROS 时钟已激活，且时间与暂停的播放器相同，才通过服务恢复播放。这样首次时间切换发生在 TF 输入之前。暂停、时钟输出和恢复服务使用 [rosbag2 Humble 的接口](https://github.com/ros2/rosbag2/blob/humble/rosbag2_transport/src/rosbag2_transport/player.cpp)，初始化超时会结束流程。
+
+重跑 EKF 默认以最初 0.5 秒扫描作为预热区间，期间仍播放原始反馈。报告明确列出原始扫描数量、跳过数量和实际待处理数量；数据已含充分预滚时可设置 `--ekf-warmup 0`。记录里程计路线不跳过预热扫描。
+
+这里的 `use_sim_time=true` 用于 rosbag2 的 `/clock`。它局限于离线消费者，不会启动仿真器，也不会改变真机入口的系统时钟。
+
+工具先检查录包消息类型、扫描时间递增和 TF 链；播放结束后核对扫描输入数量、非法输入计数、队列归零与处理完成计数。移动 / 时间阈值未达到的扫描会按 SLAM 的既定筛选规则跳过，`accepted` 和 `completed` 指外层筛选及处理调用，不等于 Karto 最终图节点数。队列超过 `max_pending_scans`（默认 1000）时显式报错，需降低回放速率。缺 TF、丢消息、处理超时或保存失败均返回非零，且不发布新地图 YAML。
+
+QEMU 跨架构验证中，早期 1 倍速回放曾触发状态服务响应超时；降速后仍复现了首次时钟切换造成的 TF 丢失，因此进一步修正了上述启动顺序。集成探针支持 `SLAM_PROBE_RATE` 和 `SLAM_PROBE_DRAIN_TIMEOUT` 调整测试速率与排空期限，扫描计数、非法输入和队列完成校验保持相同。跨架构功能验证使用的速率不能用于推断 Orin 原生性能；板端应按实际负载选择 `--rate`。
+
+每次运行产生 `offline-session-*.json` 与日志。复盘应使用同一份录包、相同输入路线和校准参数，只改变一个待比较的算法或参数。
+
+## 保存、导航和续建
+
+```bash
+# 在线保存时先停稳机器人
+ros2 launch duojin01_bringup save_map.launch.py map_name:=site_a
+
+# 用栅格图进行 AMCL / Nav2 导航
+ros2 launch duojin01_bringup navigation.launch.py map:=maps/site_a.yaml
+
+# 续建：显式设置机器人在旧地图中的起点
+ros2 launch duojin01_bringup mapping.launch.py \
+  pose_graph:=/ws/maps/site_a map_start_pose:='[1.2, 0.5, 0.0]'
+# 若确实位于首次扫描的位置，才使用 start_at_dock:=true
+```
+
+导航验证图像存在、分辨率和原点有效；有清单时核对所有快照文件的 SHA256。旧的有效 YAML + 图像地图仍可用于导航。续建需要匹配的 `.posegraph` / `.data`，栅格图不能代替位姿图。不要跨未验证的 SLAM 版本加载二进制位姿图。
+
+快照发布是文件层面的完整性保证。在线导出不暂停建图或机器人运动，各次服务调用之间可能继续收帧；需要同一时刻的严格离线基准时，用队列已清空的离线流程导出。
+
+## 下一步算法与硬件评估
+
+当前 N10Plus 是二维雷达，扫描没有可靠的逐点采集时间：不能把排序后的 540 个角度格当作真实采集顺序，再用 `scan_time / 540` 人造时间戳去畸变。应先核实雷达型号、固件、转向、时间基准及 TF 外参。
+
+优先采集静止、直行、横移、原地旋转、闭环和长走廊录包，标定底盘三个方向尺度、IMU Z 轴偏置与方差。保留麦克纳姆的 `vy` 和 Omni 运动模型。再比较 SLAM Toolbox 与 Cartographer 的闭环一致性、CPU / 内存、重定位成功率和建图延迟。二维传感器不能直接套用 FAST-LIO / LIO-SAM 所需的三维点云与惯性输入。
+
+| 方案 | 对当前设备的判断 | 升级条件 |
+| --- | --- | --- |
+| 修补后的 SLAM Toolbox + AMCL | 当前可执行的基线，地图和位姿图均有版本清单 | 先用真实录包测旋转、横移和闭环误差，再调扫描阈值、搜索范围及定位开销 |
+| Cartographer 2D | 可以作为独立对照候选；尚未在本分支集成 | 单独验证 Humble / ARM64 构建、TF 与时间基准、子图闭环质量；重新导出地图，不能直接复用 SLAM Toolbox 二进制图 |
+| FAST-LIO / LIO-SAM | 当前二维雷达不满足输入条件 | 需要更换为合适的三维雷达，并建立点时间与 IMU 同步、外参标定；当前版本不引入 |
+
+[Cartographer 官方说明](https://github.com/cartographer-project/cartographer#a-note-for-ros-users)明确指出原项目已不再活跃开发，ROS 分支仅有限维护；因此把它列为待验证对照，不承诺换用就能提高精度。[LIO-SAM 输入要求](https://github.com/TixiaoShan/LIO-SAM#prepare-lidar-data)包含点的相对时间和通道信息，进一步说明当前 LaserScan 无法直接替代其输入。
+
+Orin 上这条二维 SLAM、AMCL、Humble MPPI 主要使用 CPU。先用 `tegrastats` 和节点统计检查实际负载；AMCL 的 `max_beams=530` 接近 540 格扫描，整数步长可能仍处理整圈，可对比 90 / 180 束与粒子数量配置，但需实测定位结果后再更改默认值。GPU、线程数或新算法名称本身不能证明定位更好。
+
+参数对照也应拆开进行：同一范围的栅格从 0.03 m 改成 0.05 m，格数约为原来的 36%；地图刷新间隔可比较 1 / 2 / 3 秒。两者影响输出细节、刷新延迟和资源开销，应使用同一录包分别导出，记录闭环墙面偏差、保存 / 重载结果以及板端峰值内存。精度指标要有实测参考，队列处理数量不能代替精度。
+
+## 验证证据与限制
+
+本次使用 Ubuntu 22.04 / Humble 的 AMD64 容器与 ARM64 / QEMU 容器，构造伪串口、服务和二维录包，不接入真实设备：
+
+- 两个架构均编译 10 个真机包和固定源码 SLAM 覆盖层，使用 CMake 3.27.9；36 项 Python 测试、10 项雷达协议测试、11 个启动入口解析通过。
+- 原生覆盖层与镜像内后端分别检查；回归测试复现并覆盖 Git 父目录造成的补丁误报，校验缓存恢复后实际源码包含补丁。
+- 底盘 10 Hz 反馈、200 Hz 定时器：反馈区间的积分距离 / 时间比例约 1.000；自定义 57600 波特率、方差和 IMU 偏置有效。
+- 旋转筛选 8/8，通过 ±π、时间倒退、最小间隔、不同实例阈值测试。
+- 真实 ROS 服务验证保存成功、同名拒绝、栅格 / 图保存失败以及响应超时。
+- 24 帧构造录包：记录里程计处理 24/24；EKF 预热跳过 5 帧，其余处理 19/19；均导出完整快照，且位姿图可以重新加载。
+- AMD64 回放使用 1 倍速，ARM64 / QEMU 功能检查使用 0.1 倍速；两条路线均验证录包时钟初始化、扫描完整性与队列排空。
+- 截断同版本有效位姿图，验证加载失败时启动流程结束，不会继续建新图。
+
+上述验证证明软件路径可执行，不代表真实地图精度、Orin 实时性、噪声参数或雷达时间基准已标定。板端 JetPack / 内存版本、长期运行、资源占用与实测录包对比仍待实际设备验证。
