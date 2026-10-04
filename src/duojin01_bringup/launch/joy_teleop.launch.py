@@ -2,10 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -18,8 +15,6 @@ def generate_launch_description():
     joy_teleop_slow_config_path = os.path.join(bringup_share, "config", "joy_teleop_slow.yaml")
     joy_teleop_estop_config_path = os.path.join(bringup_share, "config", "joy_teleop_estop.yaml")
 
-    use_sim_time = LaunchConfiguration("use_sim_time")
-    use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
 
     joy = Node(
         package="joy",
@@ -27,7 +22,7 @@ def generate_launch_description():
         name="joy_node",
         parameters=[
             {
-                "use_sim_time": use_sim_time_param,
+                "use_sim_time": False,
                 "device_id": 0,
                 "deadzone": 0.12,
                 "autorepeat_rate": 20.0,
@@ -40,13 +35,13 @@ def generate_launch_description():
         package="duojin01_teleop",
         executable="joy_axis_selector_node",
         name="joy_axis_selector_node",
-        parameters=[joy_axis_selector_config_path, {"use_sim_time": use_sim_time_param}],
+        parameters=[joy_axis_selector_config_path, {"use_sim_time": False}],
     )
     joy_teleop_slow = Node(
         package="teleop_twist_joy",
         executable="teleop_node",
         name="teleop_slow",
-        parameters=[joy_teleop_slow_config_path, {"use_sim_time": use_sim_time_param}],
+        parameters=[joy_teleop_slow_config_path, {"use_sim_time": False}],
         remappings=[("/cmd_vel", "/cmd_vel_slow")],
     )
 
@@ -54,7 +49,7 @@ def generate_launch_description():
         package="teleop_twist_joy",
         executable="teleop_node",
         name="teleop_normal",
-        parameters=[joy_teleop_normal_config_path, {"use_sim_time": use_sim_time_param}],
+        parameters=[joy_teleop_normal_config_path, {"use_sim_time": False}],
         remappings=[("/cmd_vel", "/cmd_vel_normal")],
     )
 
@@ -62,7 +57,7 @@ def generate_launch_description():
         package="teleop_twist_joy",
         executable="teleop_node",
         name="teleop_estop",
-        parameters=[joy_teleop_estop_config_path, {"use_sim_time": use_sim_time_param}],
+        parameters=[joy_teleop_estop_config_path, {"use_sim_time": False}],
         remappings=[("/cmd_vel", "/cmd_vel_estop")],
     )
 
@@ -70,12 +65,11 @@ def generate_launch_description():
         package="duojin01_teleop",
         executable="joy_launcher_node",
         name="joy_launcher_node",
-        parameters=[joy_launcher_config_path, {"use_sim_time": use_sim_time_param}],
+        parameters=[joy_launcher_config_path, {"use_sim_time": False}],
         output="screen",
     )
     return LaunchDescription(
         [
-            DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="false")),
             joy,
             joy_axis_selector,
             joy_teleop_slow,

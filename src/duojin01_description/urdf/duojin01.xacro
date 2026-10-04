@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <robot name="duojin01" xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:include filename="duojin01_shared.xacro" />
-  <xacro:duojin01_shared_model use_shaft_collision="false" />
+  <xacro:include filename="duojin01_hardware.xacro" />
+  <xacro:duojin01_hardware_model />
 </robot>

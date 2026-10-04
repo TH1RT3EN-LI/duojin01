@@ -1,0 +1,13 @@
+.git
+.gitignore
+build
+install
+log
+maps
+ws
+__pycache__
+**/__pycache__
+**/*.pyc
+.pytest_cache
+*.tar
+*.tar.part.*

@@ -4,8 +4,8 @@ set -euo pipefail
 WS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PKG_NAME="duojin01_bringup"
 
-INSTALL_DIR="$WS_DIR/install/$PKG_NAME/share/$PKG_NAME/maps"
-SRC_DIR="$WS_DIR/src/$PKG_NAME/maps"
+INSTALL_DIR="$WS_DIR/install/hardware/$PKG_NAME/share/$PKG_NAME/maps"
+SRC_DIR="$WS_DIR/maps"
 NUMERIC_ONLY=1
 DRY_RUN=0
 
@@ -22,8 +22,8 @@ Options:
   -h, --help             Show this help.
 
 Defaults:
-  install-dir: install/duojin01_bringup/share/duojin01_bringup/maps
-  src-dir:     src/duojin01_bringup/maps
+  install-dir: install/hardware/duojin01_bringup/share/duojin01_bringup/maps
+  src-dir:     maps
 EOF
 }
 

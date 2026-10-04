@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from ament_index_python.packages import get_package_prefix
@@ -7,6 +8,13 @@ _PACKAGE_NAME = "duojin01_bringup"
 
 
 def get_workspace_root(package_name: str = _PACKAGE_NAME) -> Path:
+    configured_root = os.environ.get("DUOJIN01_WORKSPACE_ROOT", "").strip()
+    if configured_root:
+        root = Path(configured_root).expanduser()
+        if not root.is_absolute():
+            raise RuntimeError("DUOJIN01_WORKSPACE_ROOT must be an absolute path")
+        return root.resolve(strict=False)
+
     package_prefix = Path(get_package_prefix(package_name))
 
     for candidate in (package_prefix, *package_prefix.parents):

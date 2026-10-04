@@ -15,8 +15,8 @@ setup(
     zip_safe=True,
     maintainer='shuo',
     maintainer_email='14346918+shuonanana@user.noreply.gitee.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='Hardware mission API using Nav2, USB camera images and serial G-code.',
+    license='GPL-3.0-only',
     extras_require={
         'test': [
             'pytest',

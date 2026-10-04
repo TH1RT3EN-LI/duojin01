@@ -2,6 +2,7 @@
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <chrono>
 #include <cctype>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -17,6 +18,15 @@ using namespace std::chrono_literals;
 
 fs::path resolve_workspace_root()
 {
+  const char * configured_root = std::getenv("DUOJIN01_WORKSPACE_ROOT");
+  if (configured_root != nullptr && configured_root[0] != '\0') {
+    const fs::path workspace_root(configured_root);
+    if (!workspace_root.is_absolute()) {
+      throw std::runtime_error("DUOJIN01_WORKSPACE_ROOT must be an absolute path");
+    }
+    return workspace_root.lexically_normal();
+  }
+
   const fs::path package_prefix(ament_index_cpp::get_package_prefix("duojin01_slam_tools"));
 
   for (fs::path current = package_prefix; !current.empty(); current = current.parent_path()) {

@@ -90,7 +90,7 @@ public:
         odom_msg_.child_frame_id = robot_frame_id_;
         odom_msg_.pose.pose.position.z = 0.0;
         // -------- serial open --------
-        // On hardware the port typically exists at startup. In simulation (PTY) it may appear a bit later.
+        // Retry opening the hardware device while USB/udev discovery or reconnection completes.
         // Keep retry logic in the driver to avoid brittle launch-time sleep sequencing.
         try_open_serial_port();
         if (!serial_ || !serial_->is_open())

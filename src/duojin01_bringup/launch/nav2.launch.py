@@ -6,17 +6,14 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue
 
 
 PACKAGE_NAME = "duojin01_bringup"
 
 
 def _create_nav_actions(context, nav2_share: str):
-    use_sim_time = LaunchConfiguration("use_sim_time")
-    use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
     params_file = LaunchConfiguration("params_file")
     autostart = LaunchConfiguration("autostart")
     log_level = LaunchConfiguration("log_level")
@@ -33,7 +30,7 @@ def _create_nav_actions(context, nav2_share: str):
         launch_arguments={
             "slam": "False",
             "map": map_yaml,
-            "use_sim_time": use_sim_time,
+            "use_sim_time": "false",
             "params_file": params_file,
             "autostart": autostart,
             "log_level": log_level,
@@ -46,28 +43,14 @@ def _create_nav_actions(context, nav2_share: str):
         name="rviz2",
         arguments=["-d", rviz_config],
         output="screen",
-        parameters=[{"use_sim_time": use_sim_time_param}],
+        parameters=[{"use_sim_time": False}],
         condition=IfCondition(use_rviz),
-    )
-
-    initial_pose_pub = Node(
-        package="duojin01_sim_tools",
-        executable="initial_pose_publisher",
-        name="initial_pose_publisher",
-        output="screen",
-        parameters=[
-            {"use_sim_time": use_sim_time_param},
-            {"frame_id": "map"},
-            {"x": 0.0, "y": 0.0, "yaw": 0.0},
-            {"delay_sec": 2.0, "publish_count": 10, "publish_period_sec": 0.2},
-        ],
     )
 
     return [
         LogInfo(msg=f"[nav2] using map: {map_yaml}"),
         nav2_launch,
         rviz_launch,
-        initial_pose_pub,
     ]
 
 
@@ -78,10 +61,6 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument(
-                "use_sim_time",
-                default_value=EnvironmentVariable("USE_SIM_TIME", default_value="false"),
-            ),
             DeclareLaunchArgument("autostart", default_value="true"),
             DeclareLaunchArgument("log_level", default_value="info"),
             DeclareLaunchArgument("use_rviz", default_value="true"),

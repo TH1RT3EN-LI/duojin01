@@ -2,18 +2,20 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration
+from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
-    use_sim_time = LaunchConfiguration("use_sim_time")
     use_foxglove = LaunchConfiguration("use_foxglove")
     use_lidar = LaunchConfiguration("use_lidar")
+    use_teleop = LaunchConfiguration("use_teleop")
+    base_serial_port = LaunchConfiguration("base_serial_port")
+    base_serial_baudrate = LaunchConfiguration("base_serial_baudrate")
     publish_robot_model = LaunchConfiguration("publish_robot_model")
     publish_joint_states = LaunchConfiguration("publish_joint_states")
     odom0 = LaunchConfiguration("odom0")
@@ -22,7 +24,6 @@ def generate_launch_description():
 
     bringup_share = get_package_share_directory("duojin01_bringup")
     description_share = get_package_share_directory("duojin01_description")
-    use_sim_time_param = ParameterValue(use_sim_time, value_type=bool)
 
     ekf_config_path = os.path.join(bringup_share, "config", "ekf.yaml")
     foxglove_bridge_config_path = os.path.join(bringup_share, "config", "foxglove", "bridge.yaml")
@@ -39,7 +40,7 @@ def generate_launch_description():
         executable="joint_state_publisher",
         name="joint_state_publisher",
         output="screen",
-        parameters=[{"robot_description": robot_description, "use_sim_time": use_sim_time_param}],
+        parameters=[{"robot_description": robot_description, "use_sim_time": False}],
         condition=IfCondition(publish_joint_states),
     )
 
@@ -48,7 +49,7 @@ def generate_launch_description():
         executable="robot_state_publisher",
         name="robot_state_publisher",
         output="screen",
-        parameters=[{"robot_description": robot_description, "use_sim_time": use_sim_time_param}],
+        parameters=[{"robot_description": robot_description, "use_sim_time": False}],
         condition=IfCondition(publish_robot_model),
     )
 
@@ -59,7 +60,7 @@ def generate_launch_description():
         output="screen",
         parameters=[
             ekf_config_path,
-            {"use_sim_time": use_sim_time_param},
+            {"use_sim_time": False},
             {"odom0": odom0},
             {"imu0": imu0},
         ],
@@ -71,7 +72,7 @@ def generate_launch_description():
         executable="foxglove_bridge",
         name="foxglove_bridge_node",
         output="screen",
-        parameters=[foxglove_bridge_config_path, {"use_sim_time": use_sim_time_param}],
+        parameters=[foxglove_bridge_config_path, {"use_sim_time": False}],
         condition=IfCondition(use_foxglove),
     )
     joy_teleop_launch = IncludeLaunchDescription(
@@ -82,7 +83,7 @@ def generate_launch_description():
                 "joy_teleop.launch.py",
             )
         ),
-        condition=IfCondition(use_lidar),
+        condition=IfCondition(use_teleop),
     )
     lslidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -100,7 +101,7 @@ def generate_launch_description():
             executable="twist_mux",
             name="twist_mux",
             output="screen",
-            parameters=[twist_mux_config_path, {"use_sim_time": use_sim_time_param}],
+            parameters=[twist_mux_config_path, {"use_sim_time": False}],
             remappings=[("/cmd_vel_out", "/cmd_vel_safe")],
         )
 
@@ -109,7 +110,11 @@ def generate_launch_description():
             executable="duojin01_base_driver_node",  
             name="base_driver",
             output="screen",
-            parameters=[{"use_sim_time": use_sim_time_param}],
+            parameters=[{
+                "use_sim_time": False,
+                "usart_port_name": base_serial_port,
+                "serial_baud_rate": ParameterValue(base_serial_baudrate, value_type=int),
+            }],
             remappings=[("/cmd_vel", "/cmd_vel_safe")],
         )
 
@@ -120,16 +125,17 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 watchdog_config_path,
-                {"use_sim_time": use_sim_time_param},
+                {"use_sim_time": False},
             ],
         )
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("use_sim_time", default_value=EnvironmentVariable("USE_SIM_TIME", default_value="false")),
-            SetEnvironmentVariable("USE_SIM_TIME", use_sim_time),
             DeclareLaunchArgument("use_foxglove", default_value="true"),
             DeclareLaunchArgument("use_lidar", default_value="true"),
+            DeclareLaunchArgument("use_teleop", default_value="true"),
+            DeclareLaunchArgument("base_serial_port", default_value="/dev/duojin01_controller"),
+            DeclareLaunchArgument("base_serial_baudrate", default_value="115200"),
             DeclareLaunchArgument("odom0", default_value="/odom"),
             DeclareLaunchArgument("imu0", default_value="/imu"),
             DeclareLaunchArgument("publish_robot_model", default_value="true"),

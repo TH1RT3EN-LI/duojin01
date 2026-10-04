@@ -24,9 +24,6 @@ setup(
         (os.path.join('share', package_name, 'config', 'foxglove'),
             glob('config/foxglove/*.yaml') + glob('config/foxglove/*.json')),
 
-        (os.path.join('share', package_name, 'worlds'),
-            glob('worlds/*.sdf')),
-
         (os.path.join('share', package_name, 'maps'),
             glob('maps/*')),
     ],
@@ -34,7 +31,7 @@ setup(
     zip_safe=True,
     maintainer='litianshun',
     maintainer_email='litianshun.cn@gmail.com',
-    description='启动车辆的有关软硬件',
+    description='Duojin01 real-hardware bringup',
     license='GPL-3.0-only',
     entry_points={
         'console_scripts': [],

@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE="${IMAGE:-duojin01:humble-harmonic}"
-NAME="${NAME:-duojin01_dev}"
+IMAGE="${IMAGE:-duojin01:hardware-humble}"
+NAME="${NAME:-duojin01_hardware}"
 WS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-GUI="${GUI:-1}"
+GUI="${GUI:-0}"
 GUI_BACKEND="${GUI_BACKEND:-auto}"  # auto | wayland | x11
 NET_HOST="${NET_HOST:-1}"
 DETACH="${DETACH:-1}"
 IPC_HOST="${IPC_HOST:-1}"
 SHM_SIZE="${SHM_SIZE:-}"
 
-GPU="${GPU:-1}"
+GPU="${GPU:-0}"
+DOCKER_GPUS="${DOCKER_GPUS:-all}"
 INPUT="${INPUT:-1}"
 USB_BUS="${USB_BUS:-0}"
 DEV="${DEV:-}"
@@ -21,7 +22,8 @@ DEV_GLOB="${DEV_GLOB:-}"
 
 DOCKER_DEV_ARGS=()
 DOCKER_GROUP_ARGS=()
-DOCKER_ENV_ARGS=()
+DOCKER_GPU_ARGS=()
+DOCKER_ENV_ARGS=(-e ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-20}" -e ROS_LOCALHOST_ONLY="${ROS_LOCALHOST_ONLY:-0}")
 HOST_XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}"
 HAVE_X11=0
 HAVE_WAYLAND=0
@@ -38,7 +40,7 @@ fi
 if [[ "$GUI" == "1" ]]; then
   case "$GUI_BACKEND" in
     auto)
-      # Prefer X11/XWayland first: Gazebo GUI (Qt5) is typically more stable
+      # Prefer X11/XWayland first: RViz is typically more stable
       # there than native Wayland inside containers.
       if [[ "$HAVE_X11" == "1" ]]; then
         GUI_BACKEND_SELECTED="x11"
@@ -97,10 +99,14 @@ if [[ "$GPU" == "1" ]]; then
   else
     echo "GPU=1 but /dev/dri not found on host, falling back to software rendering." >&2
   fi
+  if [[ -c /dev/nvidiactl ]] || command -v nvidia-smi >/dev/null 2>&1; then
+    DOCKER_GPU_ARGS+=(--gpus "$DOCKER_GPUS")
+    DOCKER_ENV_ARGS+=(-e NVIDIA_DRIVER_CAPABILITIES="graphics,utility,display")
+  fi
 fi
 
 if [[ "$USB_BUS" == "1" ]] && [[ -d /dev/bus/usb ]]; then
-  DOCKER_DEV_ARGS+=(-v /dev/bus/usb:/dev/bus/usb)
+  DOCKER_DEV_ARGS+=(-v /dev/bus/usb:/dev/bus/usb --device-cgroup-rule "c 189:* rmw")
 fi
 
 if [[ -n "$DEV_LIST" ]]; then
@@ -108,7 +114,11 @@ if [[ -n "$DEV_LIST" ]]; then
   for d in "${_devs[@]}"; do
     d="$(echo "$d" | xargs)"
     [[ -z "$d" ]] && continue
-    [[ -e "$d" ]] && DOCKER_DEV_ARGS+=(--device="$d")
+    if [[ ! -e "$d" ]]; then
+      echo "Device not found: $d. Connect the hardware or correct DEV_LIST." >&2
+      exit 1
+    fi
+    DOCKER_DEV_ARGS+=(--device="$d")
   done
 fi
 
@@ -120,28 +130,33 @@ if [[ -n "$DEV_GLOB" ]]; then
     shopt -s nullglob
     matches=( $g )
     shopt -u nullglob
+    if [[ ${#matches[@]} -eq 0 ]]; then
+      echo "No devices match: $g. Connect the hardware or correct DEV_GLOB." >&2
+      exit 1
+    fi
     for m in "${matches[@]}"; do
       [[ -e "$m" ]] && DOCKER_DEV_ARGS+=(--device="$m")
     done
   done
 fi
 
-if [[ -n "$DEV" ]] && [[ -e "$DEV" ]]; then
+if [[ -n "$DEV" ]]; then
+  if [[ ! -e "$DEV" ]]; then
+    echo "Device not found: $DEV. Connect the hardware or correct DEV." >&2
+    exit 1
+  fi
   DOCKER_DEV_ARGS+=(--device="$DEV")
 fi
 
 args=(
   --name "$NAME"
-  --user "$(id -u):$(id -g)"
-  -e HOME=/tmp
   -v "$WS_DIR":/ws
   -w /ws
-  -v /etc/passwd:/etc/passwd:ro
-  -v /etc/group:/etc/group:ro
 )
 
 args+=( "${DOCKER_DEV_ARGS[@]}" )
 args+=( "${DOCKER_GROUP_ARGS[@]}" )
+args+=( "${DOCKER_GPU_ARGS[@]}" )
 args+=( "${DOCKER_ENV_ARGS[@]}" )
 
 if [[ "$NET_HOST" == "1" ]]; then
@@ -156,7 +171,7 @@ fi
 
 if [[ "$GUI" == "1" ]]; then
   if [[ "$GUI_BACKEND_SELECTED" == "x11" ]]; then
-    xhost +si:localuser:"$USER" >/dev/null 2>&1 || true
+    xhost +si:localuser:root >/dev/null 2>&1 || true
     args+=(-e QT_X11_NO_MITSHM=1)
     args+=(-e QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}")
     args+=(-e DISPLAY="$DISPLAY" -v /tmp/.X11-unix:/tmp/.X11-unix:rw)
@@ -172,12 +187,12 @@ if [[ "$GUI" == "1" ]]; then
 
     # Keep X11 fallback available for tools that only support xcb.
     if [[ "$HAVE_X11" == "1" ]]; then
-      xhost +si:localuser:"$USER" >/dev/null 2>&1 || true
+      xhost +si:localuser:root >/dev/null 2>&1 || true
       args+=(-e QT_X11_NO_MITSHM=1)
       args+=(-e DISPLAY="$DISPLAY" -v /tmp/.X11-unix:/tmp/.X11-unix:rw)
     fi
 
-    # More stable defaults for Qt Quick Gazebo GUI under Wayland containers.
+    # More stable defaults for Qt GUI under Wayland containers.
     if [[ "$WAYLAND_SOFTWARE_GL" == "1" ]]; then
       args+=(-e LIBGL_ALWAYS_SOFTWARE=1)
       args+=(-e MESA_LOADER_DRIVER_OVERRIDE=llvmpipe)

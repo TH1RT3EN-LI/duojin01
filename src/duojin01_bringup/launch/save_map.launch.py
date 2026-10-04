@@ -9,7 +9,6 @@ def generate_launch_description():
     map_name = LaunchConfiguration("map_name")
     output_dir = LaunchConfiguration("output_dir")
     wait_timeout = LaunchConfiguration("wait_timeout")
-    use_sim_time = LaunchConfiguration("use_sim_time")
 
     save_map_client = Node(
         package="duojin01_slam_tools",
@@ -23,7 +22,7 @@ def generate_launch_description():
             },
             {
                 "wait_timeout": ParameterValue(wait_timeout, value_type=float),
-                "use_sim_time": ParameterValue(use_sim_time, value_type=bool),
+                "use_sim_time": False,
             },
         ],
     )
@@ -33,7 +32,6 @@ def generate_launch_description():
             DeclareLaunchArgument("map_name", default_value="auto"),
             DeclareLaunchArgument("output_dir", default_value="maps"),
             DeclareLaunchArgument("wait_timeout", default_value="30"),
-            DeclareLaunchArgument("use_sim_time", default_value="false"),
             save_map_client,
         ]
     )
